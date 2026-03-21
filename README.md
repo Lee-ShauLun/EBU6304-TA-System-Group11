@@ -46,9 +46,9 @@
  分支，个人分支仅本人操作
 
 ## 👥 小组成员
-- **Leader**: 
-- **Member**: 
-- **Member**: 
-- **Member**:
-- **Member**: 
-- **Member**: 
+- **Leader**: Zhaolun Li
+- **Member**: Jiayou Yuan
+- **Member**: Mingshuo Huang
+- **Member**:Haoran Ma
+- **Member**: Zhenxuan Qi
+- **Member**: Shengcheng Xia

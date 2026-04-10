@@ -98,7 +98,7 @@ public class RecruitmentHttpHandler implements HttpHandler {
                 return;
             }
 
-            WebUtil.sendHtml(exchange, 404, renderer.renderErrorPage("Page not found", "The requested page does not exist."));
+            WebUtil.sendHtml(exchange, 404, renderer.renderErrorPage("Page could not found", "The requested page does not exist."));
         } catch (ValidationException e) {
             WebUtil.sendHtml(exchange, 400, renderer.renderErrorPage("Invalid request", e.getMessage()));
         } catch (Exception e) {

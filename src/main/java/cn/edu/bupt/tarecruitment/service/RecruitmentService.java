@@ -56,7 +56,7 @@ public class RecruitmentService {
     
                 
 //YJY    修改部分I improved the error messages in registration and login to make them clearer, more user-friendly, and consistent in tone.
-//I also made them more actionable, so users know how to fix the issue.
+//I also made them more actionable, so users know how to Fix the issue.
 
 public synchronized UserAccount registerAccount(
         String role, String username, String displayName, String password, String confirmPassword) {

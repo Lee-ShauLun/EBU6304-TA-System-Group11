@@ -21,38 +21,40 @@ public class HtmlRenderer {
                 """
                 <section class='hero'>
                     <div>
-                        <span class='eyebrow'>International School TA Recruitment System</span>
-                        <h1>Two portals. Two clear workflows.</h1>
+                        <span class='eyebrow'>BUPT International School</span>
+                        <h1>TA Recruitment System</h1>
                         <p>
-                            Applicants and recruiters now use separate systems. Sign in to the portal that
-                            matches your role, then continue with a focused workflow.
+                            A streamlined platform for Teaching Assistant management. 
+                            Please select the portal that corresponds to your official role to begin.
                         </p>
                     </div>
                     <div class='hero-card'>
-                        <h2>What is included</h2>
+                        <h2>System Overview</h2>
                         <ul class='bullet-list'>
-                            <li>Applicant registration, profile editing, CV upload, job search, and application tracking.</li>
-                            <li>Recruiter registration, position publishing, applicant review, and selection workflow.</li>
-                            <li>Role-based login with account and password.</li>
-                            <li>English-only interface for demos, reviews, and coursework submission.</li>
+                            <li><strong>Applicant:</strong> For students seeking TA opportunities.</li>
+                            <li><strong>Recruiter:</strong> For module leaders and admin staff managing hiring.</li>
+                            <li><strong>Unified Access:</strong> Secure, role-based login for all users.</li>
+                            <li><strong>Coursework Ready:</strong> Built for BUPT/QMUL academic evaluation.</li>
                         </ul>
                     </div>
                 </section>
                 <section class='portal-grid'>
                     <article class='portal-card applicant-theme'>
+                        <div class='eyebrow'>For Students</div>
                         <h2>Applicant Portal</h2>
-                        <p>Create your profile, upload your CV, search open positions, and track your application results.</p>
+                        <p>Discover TA vacancies, submit your CV, and track the real-time status of your module applications.</p>
                         <div class='portal-actions'>
-                            <a class='button-link' href='/login?role=APPLICANT'>Sign in as Applicant</a>
-                            <a class='text-link' href='/register?role=APPLICANT'>Create applicant account</a>
+                            <a class='button-link secondary-link' href='/login?role=APPLICANT'>Sign in as Applicant</a>
+                            <a class='text-link' href='/register?role=APPLICANT'>Create an applicant account</a>
                         </div>
                     </article>
                     <article class='portal-card recruiter-theme'>
+                        <div class='eyebrow'>For Faculty & Staff</div>
                         <h2>Recruiter Portal</h2>
-                        <p>Publish positions, review applications, shortlist candidates, and monitor workload distribution.</p>
+                        <p>Post new TA positions, review candidate skills/match scores, and manage workload distribution.</p>
                         <div class='portal-actions'>
-                            <a class='button-link secondary-link' href='/login?role=RECRUITER'>Sign in as Recruiter</a>
-                            <a class='text-link' href='/register?role=RECRUITER'>Create recruiter account</a>
+                            <a class='button-link' href='/login?role=RECRUITER'>Sign in as Recruiter</a>
+                            <a class='text-link' href='/register?role=RECRUITER'>Create a recruiter account</a>
                         </div>
                     </article>
                 </section>

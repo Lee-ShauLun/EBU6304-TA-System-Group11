@@ -53,73 +53,105 @@ public class RecruitmentService {
                 data.getApplicants().size(), openPositions, data.getApplications().size(), selectedCount);
     }
 
-    public synchronized UserAccount registerAccount(
-            String role, String username, String displayName, String password, String confirmPassword) {
-        String normalizedRole = normalizeRole(role);
-        String normalizedUsername = normalizeUsername(username);
-        String cleanedDisplayName = clean(displayName);
+    
+                
+//YJY    修改部分I improved the error messages in registration and login to make them clearer, more user-friendly, and consistent in tone.
+//I also made them more actionable, so users know how to Fix the issue.
 
-        require(!cleanedDisplayName.isEmpty(), "Display name is required.");
-        require(!normalizedUsername.isEmpty(), "Username is required.");
-        require(normalizedUsername.matches("[a-z0-9._-]{4,32}"),
-                "Username must be 4-32 characters and use only letters, numbers, dot, underscore, or hyphen.");
-        require(password != null && password.length() >= 6, "Password must be at least 6 characters.");
-        require(password.equals(confirmPassword), "The password confirmation does not match.");
+public synchronized UserAccount registerAccount(
+        String role, String username, String displayName, String password, String confirmPassword) {
 
-        SystemData data = dataStore.read();
-        boolean usernameTaken =
-                data.getAccounts().stream()
-                        .anyMatch(account -> normalizedUsername.equals(normalizeUsername(account.getUsername())));
-        require(!usernameTaken, "This username is already registered.");
+    String normalizedRole = normalizeRole(role);
+    String normalizedUsername = normalizeUsername(username);
+    String cleanedDisplayName = clean(displayName);
 
-        UserAccount account = new UserAccount();
-        account.setId(UUID.randomUUID().toString());
-        account.setRole(normalizedRole);
-        account.setUsername(normalizedUsername);
-        account.setDisplayName(cleanedDisplayName);
-        account.setPasswordHash(PasswordUtil.sha256(password));
-        account.setCreatedAt(now());
-        data.getAccounts().add(account);
+    require(!cleanedDisplayName.isEmpty(), "Display name cannot be empty.");
 
-        if (ROLE_APPLICANT.equals(normalizedRole)) {
-            ApplicantProfile profile = new ApplicantProfile();
-            profile.setId(UUID.randomUUID().toString());
-            profile.setAccountId(account.getId());
-            profile.setFullName(cleanedDisplayName);
-            profile.setEmail("");
-            profile.setPhone("");
-            profile.setMajor("");
-            profile.setYearOfStudy("");
-            profile.setSkills("");
-            profile.setAvailableHoursPerWeek(0);
-            profile.setCreatedAt(now());
-            profile.setUpdatedAt(now());
-            data.getApplicants().add(profile);
-        }
+    require(!normalizedUsername.isEmpty(), "Username cannot be empty.");
 
-        persist(data);
-        return account;
+    require(
+            normalizedUsername.matches("[a-z0-9._-]{4,32}"),
+            "Username must be 4–32 characters long and may contain only lowercase letters, numbers, dots (.), underscores (_), or hyphens (-)."
+    );
+
+    require(
+            password != null && password.length() >= 6,
+            "Password must be at least 6 characters long."
+    );
+
+    require(
+            password.equals(confirmPassword),
+            "Passwords do not match. Please re-enter."
+    );
+
+    SystemData data = dataStore.read();
+
+    boolean usernameTaken =
+            data.getAccounts().stream()
+                    .anyMatch(account -> normalizedUsername.equals(normalizeUsername(account.getUsername())));
+
+    require(
+            !usernameTaken,
+            "This username is already taken. Please choose another one."
+    );
+
+    UserAccount account = new UserAccount();
+    account.setId(UUID.randomUUID().toString());
+    account.setRole(normalizedRole);
+    account.setUsername(normalizedUsername);
+    account.setDisplayName(cleanedDisplayName);
+    account.setPasswordHash(PasswordUtil.sha256(password));
+    account.setCreatedAt(now());
+    data.getAccounts().add(account);
+
+    if (ROLE_APPLICANT.equals(normalizedRole)) {
+        ApplicantProfile profile = new ApplicantProfile();
+        profile.setId(UUID.randomUUID().toString());
+        profile.setAccountId(account.getId());
+        profile.setFullName(cleanedDisplayName);
+        profile.setEmail("");
+        profile.setPhone("");
+        profile.setMajor("");
+        profile.setYearOfStudy("");
+        profile.setSkills("");
+        profile.setAvailableHoursPerWeek(0);
+        profile.setCreatedAt(now());
+        profile.setUpdatedAt(now());
+        data.getApplicants().add(profile);
     }
 
-    public synchronized UserAccount authenticate(String role, String username, String password) {
-        String normalizedRole = normalizeRole(role);
-        String normalizedUsername = normalizeUsername(username);
-        require(!normalizedUsername.isEmpty(), "Username is required.");
-        require(password != null && !password.isEmpty(), "Password is required.");
+    persist(data);
+    return account;
+}
 
-        UserAccount account =
-                dataStore.read().getAccounts().stream()
-                        .filter(item -> normalizedRole.equals(item.getRole()))
-                        .filter(item -> normalizedUsername.equals(normalizeUsername(item.getUsername())))
-                        .findFirst()
-                        .orElse(null);
 
-        require(account != null, "No account was found for this role and username.");
-        require(
-                PasswordUtil.sha256(password).equals(account.getPasswordHash()),
-                "Incorrect password.");
-        return account;
-    }
+public synchronized UserAccount authenticate(String role, String username, String password) {
+
+    String normalizedRole = normalizeRole(role);
+    String normalizedUsername = normalizeUsername(username);
+
+    require(!normalizedUsername.isEmpty(), "Username cannot be empty.");
+    require(password != null && !password.isEmpty(), "Password cannot be empty.");
+
+    UserAccount account =
+            dataStore.read().getAccounts().stream()
+                    .filter(item -> normalizedRole.equals(item.getRole()))
+                    .filter(item -> normalizedUsername.equals(normalizeUsername(item.getUsername())))
+                    .findFirst()
+                    .orElse(null);
+
+    require(
+            account != null,
+            "No account found with the given username and role."
+    );
+
+    require(
+            PasswordUtil.sha256(password).equals(account.getPasswordHash()),
+            "Incorrect password. Please try again."
+    );
+
+    return account;
+}
 
     public synchronized UserAccount findAccountById(String accountId) {
         if (HtmlUtil.isBlank(accountId)) {

@@ -1,0 +1,14 @@
+out/
+target/
+data/trs-data.xml
+data/uploads/
+.tools/
+.DS_Store
+.codex-home-sync/
+review-group11/
+review-jiayou/
+review-mingshuo/
+review-shengcheng/
+review-zhaolun/
+review-zhenxuan/
+scripts/data/

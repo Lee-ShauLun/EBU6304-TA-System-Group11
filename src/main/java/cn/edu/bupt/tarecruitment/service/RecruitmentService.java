@@ -59,7 +59,7 @@ public class RecruitmentService {
         String normalizedUsername = normalizeUsername(username);
         String cleanedDisplayName = clean(displayName);
 
-        require(!cleanedDisplayName.isEmpty(), "Display name is required.");
+        require(!cleanedDisplayName.isEmpty(), "Display name Is required.");
         require(!normalizedUsername.isEmpty(), "Username is required.");
         require(normalizedUsername.matches("[a-z0-9._-]{4,32}"),
                 "Username must be 4-32 characters and use only letters, numbers, dot, underscore, or hyphen.");

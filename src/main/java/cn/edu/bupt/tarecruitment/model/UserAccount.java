@@ -2,15 +2,14 @@ package cn.edu.bupt.tarecruitment.model;
 
 public class UserAccount {
 
-    private final String id;
+    private String id;
     private String role;
     private String username;
     private String displayName;
     private String passwordHash;
     private String createdAt;
 
-   public UserAccount(String id) {
-        this.id = id;
+    public UserAccount() {
     }
 
     public String getId() {

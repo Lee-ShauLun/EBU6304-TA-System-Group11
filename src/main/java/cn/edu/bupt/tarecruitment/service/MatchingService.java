@@ -26,7 +26,10 @@ public class MatchingService {
                 missingSkills.add(skill);
             }
         }
-
+List<String> processedMissingSkills = missingSkills.stream()
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
         int matchedPreferred = 0;
         List<String> matchedSkills = new ArrayList<>();
         for (String skill : requiredSkills) {
@@ -67,10 +70,10 @@ public class MatchingService {
                         + position.getWeeklyHours()
                         + " hours.";
 
-        return new MatchingResult(
+       return new MatchingResult(
                 Math.min(score, 100),
                 joinSkills(matchedSkills),
-                joinSkills(missingSkills),
+                joinSkills(processedMissingSkills), 
                 explanation);
     }
 

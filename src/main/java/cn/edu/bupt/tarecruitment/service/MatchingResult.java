@@ -14,7 +14,14 @@ public class MatchingResult {
         this.missingSkills = missingSkills;
         this.explanation = explanation;
     }
+    public boolean hasMissingSkills() {
 
+        return missingSkills != null && !missingSkills.trim().isEmpty();
+
+    }
+    public double getScorePercentage() {
+        return score / 100.0;
+    }
     public int getScore() {
         return score;
     }

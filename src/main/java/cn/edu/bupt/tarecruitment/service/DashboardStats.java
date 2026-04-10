@@ -14,7 +14,21 @@ public class DashboardStats {
         this.applicationCount = applicationCount;
         this.selectedCount = selectedCount;
     }
-
+    public boolean hasOpenPositions() {
+        return openPositionCount > 0;
+    }
+    public boolean hasApplications() {
+        return applicationCount > 0;
+    }
+    public double getSelectionRate() {
+        if (applicationCount <= 0) {
+            return 0.0;
+        }
+         return (double) selectedCount / applicationCount;
+    }
+    public boolean isSystemEmpty() {
+        return applicantCount == 0 && openPositionCount == 0;
+    }
     public int getApplicantCount() {
         return applicantCount;
     }

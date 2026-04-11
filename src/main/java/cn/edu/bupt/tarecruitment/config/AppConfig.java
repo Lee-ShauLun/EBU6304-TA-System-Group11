@@ -5,6 +5,9 @@ import java.nio.file.Paths;
 
 public final class AppConfig {
 
+    private static final String DEFAULT_PORT = "8080";
+    private static final String DATA_FOLDER = "data";
+
     private final int port;
     private final Path rootDirectory;
     private final Path dataFile;
@@ -19,17 +22,16 @@ public final class AppConfig {
 
     public static AppConfig load() {
         Path root = Paths.get("").toAbsolutePath().normalize();
-        String configuredPort =
-                System.getProperty("trs.port", System.getenv().getOrDefault("TRS_PORT", "8080"));
+        String configuredPort = System.getProperty("trs.port", System.getenv().getOrDefault("TRS_PORT", DEFAULT_PORT));
 
-        int port = 8080;
+        int port;
         try {
             port = Integer.parseInt(configuredPort.trim());
         } catch (NumberFormatException ignored) {
-            port = 8080;
+            port = Integer.parseInt(DEFAULT_PORT);
         }
 
-        Path dataDirectory = root.resolve("data");
+        Path dataDirectory = root.resolve(DATA_FOLDER);
         return new AppConfig(
                 port,
                 root,

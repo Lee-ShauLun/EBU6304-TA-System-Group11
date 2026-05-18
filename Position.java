@@ -113,4 +113,7 @@ public class Position {
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
     }
+    public enum PositionStatus {
+    DRAFT, OPEN, RECRUITING, CLOSED
+    }
 }

@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Builds workload summaries from selected applications and position weekly hours.
+ */
 public class WorkloadService {
 
     public List<WorkloadEntry> buildReport(

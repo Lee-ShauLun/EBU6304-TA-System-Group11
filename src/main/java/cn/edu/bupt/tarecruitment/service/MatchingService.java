@@ -10,6 +10,9 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Calculates transparent, rule-based match scores between applicants and TA positions.
+ */
 public class MatchingService {
 
     public MatchingResult calculate(ApplicantProfile applicant, Position position) {
@@ -26,10 +29,7 @@ public class MatchingService {
                 missingSkills.add(skill);
             }
         }
-List<String> processedMissingSkills = missingSkills.stream()
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
+
         int matchedPreferred = 0;
         List<String> matchedSkills = new ArrayList<>();
         for (String skill : requiredSkills) {
@@ -56,24 +56,24 @@ List<String> processedMissingSkills = missingSkills.stream()
 
         int score = (int) Math.round(requiredScore + preferredScore + availabilityScore);
         String explanation =
-                "Required skills matched "
+                "Required skills (70%) matched "
                         + matchedRequired
                         + "/"
                         + Math.max(requiredSkills.size(), 1)
-                        + ", preferred skills matched "
+                        + ", preferred skills (20%) matched "
                         + matchedPreferred
                         + "/"
                         + Math.max(preferredSkills.size(), 1)
-                        + ", weekly availability "
+                        + ", availability (10%) "
                         + applicant.getAvailableHoursPerWeek()
                         + "/"
                         + position.getWeeklyHours()
                         + " hours.";
 
-       return new MatchingResult(
+        return new MatchingResult(
                 Math.min(score, 100),
                 joinSkills(matchedSkills),
-                joinSkills(processedMissingSkills), 
+                joinSkills(missingSkills),
                 explanation);
     }
 

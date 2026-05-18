@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Routes HTTP requests to role-specific recruitment workflows.
+ */
 public class RecruitmentHttpHandler implements HttpHandler {
 
     private static final String SESSION_COOKIE = "trs_session";
@@ -97,12 +100,22 @@ public class RecruitmentHttpHandler implements HttpHandler {
                 handleRecruiterRoutes(exchange, method, path, session, account);
                 return;
             }
+            if (path.startsWith("/admin")) {
+                handleAdminRoutes(exchange, method, path, session, account);
+                return;
+            }
 
-            WebUtil.sendHtml(exchange, 404, renderer.renderErrorPage("Page could not found", "The requested page does not exist."));
+            WebUtil.sendHtml(exchange, 404, renderer.renderErrorPage("Page not found", "The requested page does not exist."));
         } catch (ValidationException e) {
             WebUtil.sendHtml(exchange, 400, renderer.renderErrorPage("Invalid request", e.getMessage()));
         } catch (Exception e) {
-            WebUtil.sendHtml(exchange, 500, renderer.renderErrorPage("Server error", e.getMessage()));
+            e.printStackTrace();
+            WebUtil.sendHtml(
+                    exchange,
+                    500,
+                    renderer.renderErrorPage(
+                            "Server error",
+                            "Something went wrong while processing the request. Please try again."));
         }
     }
 
@@ -181,9 +194,11 @@ public class RecruitmentHttpHandler implements HttpHandler {
             UserSession session = createSession(account);
             exchange.getResponseHeaders().add("Set-Cookie", sessionCookie(session.sessionId()));
             String redirectPath =
-                    RecruitmentService.ROLE_APPLICANT.equals(role)
-                            ? "/applicant/profile"
-                            : "/recruiter";
+                    switch (role) {
+                        case RecruitmentService.ROLE_APPLICANT -> "/applicant/profile";
+                        case RecruitmentService.ROLE_ADMIN -> "/admin";
+                        default -> "/recruiter";
+                    };
             WebUtil.redirect(
                     exchange,
                     buildUrl(redirectPath, mapOf("notice", "Account created successfully.")));
@@ -307,6 +322,34 @@ public class RecruitmentHttpHandler implements HttpHandler {
         }
 
         WebUtil.sendHtml(exchange, 404, renderer.renderErrorPage("Page not found", "The recruiter page does not exist."));
+    }
+
+    private void handleAdminRoutes(
+            HttpExchange exchange,
+            String method,
+            String path,
+            UserSession session,
+            UserAccount account)
+            throws IOException {
+        UserAccount adminAccount = requireRole(exchange, session, account, RecruitmentService.ROLE_ADMIN);
+        if (adminAccount == null) {
+            return;
+        }
+
+        if ("GET".equals(method) && "/admin".equals(path)) {
+            handleAdminDashboard(exchange, adminAccount);
+            return;
+        }
+        if ("GET".equals(method) && "/admin/workload".equals(path)) {
+            handleAdminWorkloadPage(exchange, adminAccount);
+            return;
+        }
+        if ("GET".equals(method) && "/admin/applications".equals(path)) {
+            handleAdminApplicationsPage(exchange, adminAccount);
+            return;
+        }
+
+        WebUtil.sendHtml(exchange, 404, renderer.renderErrorPage("Page not found", "The admin page does not exist."));
     }
 
     private void handleApplicantDashboard(HttpExchange exchange, UserAccount account) throws IOException {
@@ -573,6 +616,54 @@ public class RecruitmentHttpHandler implements HttpHandler {
                         account, workloadEntries, query.get("notice"), query.get("error")));
     }
 
+    private void handleAdminDashboard(HttpExchange exchange, UserAccount account) throws IOException {
+        Map<String, String> query = WebUtil.parseQuery(exchange.getRequestURI().getRawQuery());
+        WebUtil.sendHtml(
+                exchange,
+                200,
+                renderer.renderAdminDashboard(
+                        account,
+                        recruitmentService.getDashboardStats(),
+                        recruitmentService.buildWorkloadReport(),
+                        allApplications(),
+                        query.get("notice"),
+                        query.get("error")));
+    }
+
+    private void handleAdminWorkloadPage(HttpExchange exchange, UserAccount account) throws IOException {
+        Map<String, String> query = WebUtil.parseQuery(exchange.getRequestURI().getRawQuery());
+        WebUtil.sendHtml(
+                exchange,
+                200,
+                renderer.renderAdminWorkload(
+                        account,
+                        recruitmentService.buildWorkloadReport(),
+                        query.get("notice"),
+                        query.get("error")));
+    }
+
+    private void handleAdminApplicationsPage(HttpExchange exchange, UserAccount account) throws IOException {
+        Map<String, String> query = WebUtil.parseQuery(exchange.getRequestURI().getRawQuery());
+        Map<String, ApplicantProfile> applicantIndex = new HashMap<>();
+        for (ApplicantProfile applicant : recruitmentService.listApplicants()) {
+            applicantIndex.put(applicant.getId(), applicant);
+        }
+        Map<String, Position> positionIndex = new HashMap<>();
+        for (Position position : recruitmentService.listAllPositions("")) {
+            positionIndex.put(position.getId(), position);
+        }
+        WebUtil.sendHtml(
+                exchange,
+                200,
+                renderer.renderAdminApplications(
+                        account,
+                        allApplications(),
+                        applicantIndex,
+                        positionIndex,
+                        query.get("notice"),
+                        query.get("error")));
+    }
+
     private void handleDownload(HttpExchange exchange) throws IOException {
         Map<String, String> query = WebUtil.parseQuery(exchange.getRequestURI().getRawQuery());
         String storedFileName = query.get("file");
@@ -635,6 +726,12 @@ public class RecruitmentHttpHandler implements HttpHandler {
         return index;
     }
 
+    private List<ApplicationRecord> allApplications() {
+        return recruitmentService.listAllPositions("").stream()
+                .flatMap(position -> recruitmentService.listApplicationsForPosition(position.getId()).stream())
+                .toList();
+    }
+
     private UserSession createSession(UserAccount account) {
         String sessionId = UUID.randomUUID().toString();
         UserSession session = new UserSession(sessionId, account.getId(), account.getRole());
@@ -660,7 +757,7 @@ public class RecruitmentHttpHandler implements HttpHandler {
     }
 
     private boolean legacyPath(String path) {
-        return path.startsWith("/ta") || path.startsWith("/mo") || path.startsWith("/admin");
+        return path.startsWith("/ta") || path.startsWith("/mo");
     }
 
     private String sessionCookie(String sessionId) {
@@ -672,14 +769,24 @@ public class RecruitmentHttpHandler implements HttpHandler {
     }
 
     private String defaultPortalPath(String role) {
-        return RecruitmentService.ROLE_RECRUITER.equals(role) ? "/recruiter" : "/applicant";
+        if (RecruitmentService.ROLE_RECRUITER.equals(role)) {
+            return "/recruiter";
+        }
+        if (RecruitmentService.ROLE_ADMIN.equals(role)) {
+            return "/admin";
+        }
+        return "/applicant";
     }
 
     private String normalizedRole(String rawRole) {
         String role = HtmlUtil.nonNull(rawRole).trim().toUpperCase();
-        return RecruitmentService.ROLE_RECRUITER.equals(role)
-                ? RecruitmentService.ROLE_RECRUITER
-                : RecruitmentService.ROLE_APPLICANT;
+        if (RecruitmentService.ROLE_RECRUITER.equals(role)) {
+            return RecruitmentService.ROLE_RECRUITER;
+        }
+        if (RecruitmentService.ROLE_ADMIN.equals(role)) {
+            return RecruitmentService.ROLE_ADMIN;
+        }
+        return RecruitmentService.ROLE_APPLICANT;
     }
 
     private int parseInt(String rawValue, int defaultValue) {

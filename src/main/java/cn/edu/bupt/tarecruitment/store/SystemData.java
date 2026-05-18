@@ -1,5 +1,10 @@
 package cn.edu.bupt.tarecruitment.store;
 
+import cn.edu.bupt.tarecruitment.model.ApplicantProfile;
+import cn.edu.bupt.tarecruitment.model.ApplicationRecord;
+import cn.edu.bupt.tarecruitment.model.CvDocument;
+import cn.edu.bupt.tarecruitment.model.Position;
+import cn.edu.bupt.tarecruitment.model.UserAccount;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,13 +59,21 @@ public class SystemData {
         this.applications = applications;
     }
 
-
     public void ensureCollections() {
-        accounts = (accounts == null) ? new ArrayList<>() : accounts;
-        applicants = (applicants == null) ? new ArrayList<>() : applicants;
-        cvDocuments = (cvDocuments == null) ? new ArrayList<>() : cvDocuments;
-        positions = (positions == null) ? new ArrayList<>() : positions;
-        applications = (applications == null) ? new ArrayList<>() : applications;
+        if (accounts == null) {
+            accounts = new ArrayList<>();
+        }
+        if (applicants == null) {
+            applicants = new ArrayList<>();
+        }
+        if (cvDocuments == null) {
+            cvDocuments = new ArrayList<>();
+        }
+        if (positions == null) {
+            positions = new ArrayList<>();
+        }
+        if (applications == null) {
+            applications = new ArrayList<>();
+        }
     }
-
 }

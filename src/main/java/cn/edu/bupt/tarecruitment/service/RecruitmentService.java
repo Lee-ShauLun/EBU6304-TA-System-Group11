@@ -23,10 +23,15 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Coordinates the recruitment business workflow and enforces validation rules.
+ */
 public class RecruitmentService {
 
     public static final String ROLE_APPLICANT = "APPLICANT";
     public static final String ROLE_RECRUITER = "RECRUITER";
+    public static final String ROLE_ADMIN = "ADMIN";
+    private static final int MAX_CV_BYTES = 5 * 1024 * 1024;
 
     private final XmlDataStore dataStore;
     private final Path uploadsDirectory;
@@ -53,105 +58,73 @@ public class RecruitmentService {
                 data.getApplicants().size(), openPositions, data.getApplications().size(), selectedCount);
     }
 
-    
-                
-//YJY    修改部分I improved the error messages in registration and login to make them clearer, more user-friendly, and consistent in tone.
-//I also made them more actionable, so users know how to Fix the issue.
+    public synchronized UserAccount registerAccount(
+            String role, String username, String displayName, String password, String confirmPassword) {
+        String normalizedRole = normalizeRole(role);
+        String normalizedUsername = normalizeUsername(username);
+        String cleanedDisplayName = clean(displayName);
 
-public synchronized UserAccount registerAccount(
-        String role, String username, String displayName, String password, String confirmPassword) {
+        require(!cleanedDisplayName.isEmpty(), "Display name is required.");
+        require(!normalizedUsername.isEmpty(), "Username is required.");
+        require(normalizedUsername.matches("[a-z0-9._-]{4,32}"),
+                "Username must be 4-32 characters and use only letters, numbers, dot, underscore, or hyphen.");
+        require(password != null && password.length() >= 6, "Password must be at least 6 characters.");
+        require(password.equals(confirmPassword), "The password confirmation does not match.");
 
-    String normalizedRole = normalizeRole(role);
-    String normalizedUsername = normalizeUsername(username);
-    String cleanedDisplayName = clean(displayName);
+        SystemData data = dataStore.read();
+        boolean usernameTaken =
+                data.getAccounts().stream()
+                        .anyMatch(account -> normalizedUsername.equals(normalizeUsername(account.getUsername())));
+        require(!usernameTaken, "This username is already registered.");
 
-    require(!cleanedDisplayName.isEmpty(), "Display name cannot be empty.");
+        UserAccount account = new UserAccount();
+        account.setId(UUID.randomUUID().toString());
+        account.setRole(normalizedRole);
+        account.setUsername(normalizedUsername);
+        account.setDisplayName(cleanedDisplayName);
+        account.setPasswordHash(PasswordUtil.sha256(password));
+        account.setCreatedAt(now());
+        data.getAccounts().add(account);
 
-    require(!normalizedUsername.isEmpty(), "Username cannot be empty.");
+        if (ROLE_APPLICANT.equals(normalizedRole)) {
+            ApplicantProfile profile = new ApplicantProfile();
+            profile.setId(UUID.randomUUID().toString());
+            profile.setAccountId(account.getId());
+            profile.setFullName(cleanedDisplayName);
+            profile.setEmail("");
+            profile.setPhone("");
+            profile.setMajor("");
+            profile.setYearOfStudy("");
+            profile.setSkills("");
+            profile.setAvailableHoursPerWeek(0);
+            profile.setCreatedAt(now());
+            profile.setUpdatedAt(now());
+            data.getApplicants().add(profile);
+        }
 
-    require(
-            normalizedUsername.matches("[a-z0-9._-]{4,32}"),
-            "Username must be 4–32 characters long and may contain only lowercase letters, numbers, dots (.), underscores (_), or hyphens (-)."
-    );
-
-    require(
-            password != null && password.length() >= 6,
-            "Password must be at least 6 characters long."
-    );
-
-    require(
-            password.equals(confirmPassword),
-            "Passwords do not match. Please re-enter."
-    );
-
-    SystemData data = dataStore.read();
-
-    boolean usernameTaken =
-            data.getAccounts().stream()
-                    .anyMatch(account -> normalizedUsername.equals(normalizeUsername(account.getUsername())));
-
-    require(
-            !usernameTaken,
-            "This username is already taken. Please choose another one."
-    );
-
-    UserAccount account = new UserAccount();
-    account.setId(UUID.randomUUID().toString());
-    account.setRole(normalizedRole);
-    account.setUsername(normalizedUsername);
-    account.setDisplayName(cleanedDisplayName);
-    account.setPasswordHash(PasswordUtil.sha256(password));
-    account.setCreatedAt(now());
-    data.getAccounts().add(account);
-
-    if (ROLE_APPLICANT.equals(normalizedRole)) {
-        ApplicantProfile profile = new ApplicantProfile();
-        profile.setId(UUID.randomUUID().toString());
-        profile.setAccountId(account.getId());
-        profile.setFullName(cleanedDisplayName);
-        profile.setEmail("");
-        profile.setPhone("");
-        profile.setMajor("");
-        profile.setYearOfStudy("");
-        profile.setSkills("");
-        profile.setAvailableHoursPerWeek(0);
-        profile.setCreatedAt(now());
-        profile.setUpdatedAt(now());
-        data.getApplicants().add(profile);
+        persist(data);
+        return account;
     }
 
-    persist(data);
-    return account;
-}
+    public synchronized UserAccount authenticate(String role, String username, String password) {
+        String normalizedRole = normalizeRole(role);
+        String normalizedUsername = normalizeUsername(username);
+        require(!normalizedUsername.isEmpty(), "Username is required.");
+        require(password != null && !password.isEmpty(), "Password is required.");
 
+        UserAccount account =
+                dataStore.read().getAccounts().stream()
+                        .filter(item -> normalizedRole.equals(item.getRole()))
+                        .filter(item -> normalizedUsername.equals(normalizeUsername(item.getUsername())))
+                        .findFirst()
+                        .orElse(null);
 
-public synchronized UserAccount authenticate(String role, String username, String password) {
-
-    String normalizedRole = normalizeRole(role);
-    String normalizedUsername = normalizeUsername(username);
-
-    require(!normalizedUsername.isEmpty(), "Username cannot be empty.");
-    require(password != null && !password.isEmpty(), "Password cannot be empty.");
-
-    UserAccount account =
-            dataStore.read().getAccounts().stream()
-                    .filter(item -> normalizedRole.equals(item.getRole()))
-                    .filter(item -> normalizedUsername.equals(normalizeUsername(item.getUsername())))
-                    .findFirst()
-                    .orElse(null);
-
-    require(
-            account != null,
-            "No account found with the given username and role."
-    );
-
-    require(
-            PasswordUtil.sha256(password).equals(account.getPasswordHash()),
-            "Incorrect password. Please try again."
-    );
-
-    return account;
-}
+        require(account != null, "No account was found for this role and username.");
+        require(
+                PasswordUtil.sha256(password).equals(account.getPasswordHash()),
+                "Incorrect password.");
+        return account;
+    }
 
     public synchronized UserAccount findAccountById(String accountId) {
         if (HtmlUtil.isBlank(accountId)) {
@@ -178,7 +151,10 @@ public synchronized UserAccount authenticate(String role, String username, Strin
         require(!HtmlUtil.isBlank(accountId), "You must sign in first.");
         require(!HtmlUtil.isBlank(draft.getFullName()), "Full name is required.");
         require(!HtmlUtil.isBlank(draft.getEmail()), "Email is required.");
-        require(draft.getAvailableHoursPerWeek() >= 0, "Weekly availability cannot be negative.");
+        require(isValidEmail(draft.getEmail()), "Enter a valid email address.");
+        require(
+                draft.getAvailableHoursPerWeek() >= 0 && draft.getAvailableHoursPerWeek() <= 40,
+                "Weekly availability must be between 0 and 40 hours.");
 
         SystemData data = dataStore.read();
         ApplicantProfile target = findOrCreateApplicantProfile(data, accountId);
@@ -276,8 +252,10 @@ public synchronized UserAccount authenticate(String role, String username, Strin
         require(!HtmlUtil.isBlank(draft.getModuleName()), "Position title is required.");
         require(!HtmlUtil.isBlank(draft.getOrganiserName()), "Recruiter name is required.");
         require(!HtmlUtil.isBlank(draft.getOrganiserEmail()), "Recruiter email is required.");
-        require(draft.getWeeklyHours() > 0, "Weekly hours must be greater than zero.");
-        require(draft.getQuota() > 0, "Quota must be greater than zero.");
+        require(isValidEmail(draft.getOrganiserEmail()), "Enter a valid recruiter email address.");
+        require(!HtmlUtil.isBlank(draft.getRequiredSkills()), "Required skills are required.");
+        require(draft.getWeeklyHours() >= 1 && draft.getWeeklyHours() <= 20, "Weekly hours must be between 1 and 20.");
+        require(draft.getQuota() >= 1 && draft.getQuota() <= 20, "Quota must be between 1 and 20.");
 
         Position position = new Position();
         position.setId(UUID.randomUUID().toString());
@@ -304,12 +282,14 @@ public synchronized UserAccount authenticate(String role, String username, Strin
         require(uploadedFile != null, "Please upload a CV file.");
         require(!HtmlUtil.isBlank(uploadedFile.getOriginalFileName()), "The CV file name is missing.");
         require(uploadedFile.getContent().length > 0, "The uploaded file is empty.");
+        require(uploadedFile.getContent().length <= MAX_CV_BYTES, "The uploaded CV must be 5 MB or smaller.");
 
         ApplicantProfile applicant = findApplicant(applicantId);
         require(applicant != null, "The applicant profile was not found.");
 
         String safeOriginalFileName = sanitizeFileName(uploadedFile.getOriginalFileName());
         String extension = extractExtension(safeOriginalFileName);
+        require(isAllowedCvExtension(extension), "CV files must be PDF, DOC, DOCX, or TXT.");
         String storedFileName = applicantId + "-" + System.currentTimeMillis() + extension;
         Path targetFile = uploadsDirectory.resolve(storedFileName).normalize();
         require(targetFile.startsWith(uploadsDirectory.normalize()), "Invalid file path.");
@@ -651,7 +631,7 @@ public synchronized UserAccount authenticate(String role, String username, Strin
     private String normalizeRole(String role) {
         String normalized = safe(role).trim().toUpperCase(Locale.ROOT);
         require(
-                ROLE_APPLICANT.equals(normalized) || ROLE_RECRUITER.equals(normalized),
+                ROLE_APPLICANT.equals(normalized) || ROLE_RECRUITER.equals(normalized) || ROLE_ADMIN.equals(normalized),
                 "Unsupported account role.");
         return normalized;
     }
@@ -677,7 +657,7 @@ public synchronized UserAccount authenticate(String role, String username, Strin
         if (dotIndex < 0) {
             return "";
         }
-        return fileName.substring(dotIndex);
+        return fileName.substring(dotIndex).toLowerCase(Locale.ROOT);
     }
 
     private String sanitizeFileName(String fileName) {
@@ -686,6 +666,19 @@ public synchronized UserAccount authenticate(String role, String username, Strin
         if (slashIndex >= 0) {
             normalized = normalized.substring(slashIndex + 1);
         }
+        normalized = normalized.replaceAll("[\\r\\n\\t]", "").trim();
         return normalized.isBlank() ? "resume" : normalized;
+    }
+
+    private boolean isValidEmail(String value) {
+        String email = clean(value);
+        return email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    private boolean isAllowedCvExtension(String extension) {
+        return ".pdf".equals(extension)
+                || ".doc".equals(extension)
+                || ".docx".equals(extension)
+                || ".txt".equals(extension);
     }
 }

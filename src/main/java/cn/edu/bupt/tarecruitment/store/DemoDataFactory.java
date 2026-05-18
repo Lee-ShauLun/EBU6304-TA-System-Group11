@@ -1,6 +1,10 @@
 package cn.edu.bupt.tarecruitment.store;
 
+import cn.edu.bupt.tarecruitment.model.ApplicantProfile;
 import cn.edu.bupt.tarecruitment.model.Position;
+import cn.edu.bupt.tarecruitment.model.UserAccount;
+import cn.edu.bupt.tarecruitment.service.RecruitmentService;
+import cn.edu.bupt.tarecruitment.util.PasswordUtil;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -13,12 +17,37 @@ public final class DemoDataFactory {
         SystemData data = new SystemData();
         data.ensureCollections();
 
+        String applicantAccountId = UUID.randomUUID().toString();
+        data.getAccounts().add(account(
+                applicantAccountId,
+                RecruitmentService.ROLE_APPLICANT,
+                "demo_applicant",
+                "Alice Applicant"));
+        data.getAccounts().add(account(
+                UUID.randomUUID().toString(),
+                RecruitmentService.ROLE_RECRUITER,
+                "demo_recruiter",
+                "Riley Recruiter"));
+        data.getAccounts().add(account(
+                UUID.randomUUID().toString(),
+                RecruitmentService.ROLE_ADMIN,
+                "demo_admin",
+                "Avery Admin"));
+        data.getApplicants().add(applicant(
+                applicantAccountId,
+                "Alice Applicant",
+                "alice.applicant@example.com",
+                "Software Engineering",
+                "Year 3",
+                "java, debugging, algorithms, git, communication",
+                12));
+
         data.getPositions().add(position(
                 "INT101",
                 "Academic English Support",
                 "Dr. Helen Carter",
                 "helen.carter@bupt.edu.cn",
-                "Provide academic English support to students, including conducting tutorial sessions, answering academic inquiries, assisting with essay and report writing, preparing weekly learning materials and worksheets, grading language assignments, and helping students improve their overall English academic skills.",
+                "Support tutorials, answer student questions, and help prepare weekly worksheets.",
                 "english writing, communication, tutorial facilitation",
                 "canvas, grading, presentation",
                 6,
@@ -29,7 +58,7 @@ public final class DemoDataFactory {
                 "Programming Fundamentals",
                 "Prof. Chen Hao",
                 "chenhao@bupt.edu.cn",
-                "Assist in teaching basic programming concepts, supervise and guide lab sessions, help students debug code errors, maintain attendance and office hour records, answer basic programming questions during tutorials, and support instructors with course-related administrative tasks.",
+                "Assist with lab sessions, debug student code, and maintain office hour records.",
                 "java, debugging, algorithms",
                 "git, unit testing, patience",
                 8,
@@ -40,13 +69,47 @@ public final class DemoDataFactory {
                 "Data Science Practice",
                 "Dr. Sophia Li",
                 "sophia.li@bupt.edu.cn",
-                "Assist in data science practical courses, guide students through data cleaning and analysis workshops, help with Jupyter notebook exercises, provide support for data processing tasks, assist in explaining machine learning basics, and help organize practical project sessions.",
+                "Help with data-cleaning workshops and guide students through weekly notebooks.",
                 "python, statistics, data analysis",
                 "pandas, visualization, teamwork",
                 7,
                 1));
 
         return data;
+    }
+
+    private static UserAccount account(String id, String role, String username, String displayName) {
+        UserAccount account = new UserAccount();
+        account.setId(id);
+        account.setRole(role);
+        account.setUsername(username);
+        account.setDisplayName(displayName);
+        account.setPasswordHash(PasswordUtil.sha256("password123"));
+        account.setCreatedAt(OffsetDateTime.now().toString());
+        return account;
+    }
+
+    private static ApplicantProfile applicant(
+            String accountId,
+            String fullName,
+            String email,
+            String major,
+            String yearOfStudy,
+            String skills,
+            int availableHours) {
+        ApplicantProfile applicant = new ApplicantProfile();
+        applicant.setId(UUID.randomUUID().toString());
+        applicant.setAccountId(accountId);
+        applicant.setFullName(fullName);
+        applicant.setEmail(email);
+        applicant.setPhone("");
+        applicant.setMajor(major);
+        applicant.setYearOfStudy(yearOfStudy);
+        applicant.setSkills(skills);
+        applicant.setAvailableHoursPerWeek(availableHours);
+        applicant.setCreatedAt(OffsetDateTime.now().toString());
+        applicant.setUpdatedAt(OffsetDateTime.now().toString());
+        return applicant;
     }
 
     private static Position position(

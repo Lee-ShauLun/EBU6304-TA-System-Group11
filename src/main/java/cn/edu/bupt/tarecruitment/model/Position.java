@@ -17,9 +17,6 @@ public class Position {
 
     public Position() {
     }
-    public boolean isOpen() {
-        return "OPEN".equalsIgnoreCase(this.status);
-    }
 
     public String getId() {
         return id;

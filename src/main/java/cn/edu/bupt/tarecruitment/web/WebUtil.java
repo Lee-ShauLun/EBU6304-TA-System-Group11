@@ -34,14 +34,7 @@ public final class WebUtil {
 
     public static void sendHtml(HttpExchange exchange, int statusCode, String html) throws IOException {
         byte[] responseBody = html.getBytes(StandardCharsets.UTF_8);
-        
-        
         exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
-        
-       
-        
-        exchange.getResponseHeaders().set("Cache-Control", "no-store, no-cache, must-revalidate");
-        
         exchange.sendResponseHeaders(statusCode, responseBody.length);
         try (OutputStream outputStream = exchange.getResponseBody()) {
             outputStream.write(responseBody);

@@ -158,8 +158,10 @@ public class RecruitmentHttpHandler implements HttpHandler {
             return;
         }
 
-        Map<String, String> query = WebUtil.parseQuery(exchange.getRequestURI().getRawQuery());
-        String role = normalizedRole(query.getOrDefault("role", RecruitmentService.ROLE_APPLICANT));
+        var rawQuery = exchange.getRequestURI().getRawQuery();
+        var query = WebUtil.parseQuery(rawQuery);
+        var role = normalizedRole(query.getOrDefault("role", RecruitmentService.ROLE_APPLICANT));
+        
         WebUtil.sendHtml(
                 exchange,
                 200,

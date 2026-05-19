@@ -107,17 +107,25 @@ public class RecruitmentHttpHandler implements HttpHandler {
     }
 
     private void handleLandingPage(HttpExchange exchange, UserSession session) throws IOException {
-        if (session != null) {
-            WebUtil.redirect(exchange, defaultPortalPath(session.role()));
-            return;
-        }
-
-        Map<String, String> query = WebUtil.parseQuery(exchange.getRequestURI().getRawQuery());
-        WebUtil.sendHtml(
-                exchange,
-                200,
-                renderer.renderLandingPage(query.get("notice"), query.get("error")));
+    if (session != null) {
+        WebUtil.redirect(exchange, defaultPortalPath(session.role()));
+        return;
     }
+
+    String rawQuery = exchange.getRequestURI().getRawQuery();
+    Map<String, String> query = (rawQuery != null && !rawQuery.isEmpty()) 
+            ? WebUtil.parseQuery(rawQuery) 
+            : Collections.emptyMap();
+
+    String notice = query.get("notice");
+    String error = query.get("error");
+
+    WebUtil.sendHtml(
+            exchange,
+            HttpURLConnection.HTTP_OK, 
+            renderer.renderLandingPage(notice, error)
+    );
+}
 
     private void handleLoginPage(HttpExchange exchange, UserSession session) throws IOException {
         if (session != null) {

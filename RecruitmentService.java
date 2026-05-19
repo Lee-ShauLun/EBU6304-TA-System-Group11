@@ -184,8 +184,11 @@ public class RecruitmentService {
 
     public synchronized ApplicationRecord applyForPositionForAccount(
             String accountId, String positionId, String statement) {
-        ApplicantProfile applicantProfile = getRequiredApplicantProfile(accountId);
-        return applyForPosition(applicantProfile.getId(), positionId, statement);
+        require(!HtmlUtil.isBlank(accountId), "Account ID cannot be empty");
+        require(!HtmlUtil.isBlank(positionId), "Position ID cannot be empty");
+    
+        ApplicantProfile profile = getRequiredApplicantProfile(accountId);
+        return applyForPosition(profile.getId(), positionId, statement);
     }
 
     public synchronized List<ApplicationRecord> listApplicationsForAccount(String accountId) {

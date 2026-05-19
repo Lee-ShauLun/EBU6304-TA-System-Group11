@@ -17,9 +17,6 @@ public class Position {
 
     public Position() {
     }
-    public boolean isOpen() {
-        return "OPEN".equalsIgnoreCase(this.status);
-    }
 
     public String getId() {
         return id;
@@ -115,5 +112,8 @@ public class Position {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+    public enum PositionStatus {
+    DRAFT, OPEN, RECRUITING, CLOSED
     }
 }

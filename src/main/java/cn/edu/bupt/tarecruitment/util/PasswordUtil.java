@@ -13,7 +13,7 @@ public final class PasswordUtil {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
+            StringBuilder hex = new StringBuilder(hash.length * 2);
             for (byte item : hash) {
                 hex.append(String.format("%02x", item));
             }

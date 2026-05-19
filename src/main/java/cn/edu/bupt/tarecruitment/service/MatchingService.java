@@ -3,6 +3,7 @@ package cn.edu.bupt.tarecruitment.service;
 import cn.edu.bupt.tarecruitment.model.ApplicantProfile;
 import cn.edu.bupt.tarecruitment.model.Position;
 import cn.edu.bupt.tarecruitment.util.HtmlUtil;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,6 +13,11 @@ import java.util.stream.Collectors;
 
 public class MatchingService {
 
+    // 分数权重（保持原有逻辑不动）
+    private static final double REQUIRED_WEIGHT = 70.0;
+    private static final double PREFERRED_WEIGHT = 20.0;
+    private static final double AVAILABILITY_WEIGHT = 10.0;
+
     public MatchingResult calculate(ApplicantProfile applicant, Position position) {
         Set<String> applicantSkills = normalizeSkills(applicant.getSkills());
         Set<String> requiredSkills = normalizeSkills(position.getRequiredSkills());
@@ -19,6 +25,8 @@ public class MatchingService {
 
         List<String> missingSkills = new ArrayList<>();
         int matchedRequired = 0;
+
+        // 计算必选技能匹配与缺失
         for (String skill : requiredSkills) {
             if (applicantSkills.contains(skill)) {
                 matchedRequired++;
@@ -27,13 +35,16 @@ public class MatchingService {
             }
         }
 
-        int matchedPreferred = 0;
+        // 构建已匹配的技能列表
         List<String> matchedSkills = new ArrayList<>();
         for (String skill : requiredSkills) {
             if (applicantSkills.contains(skill)) {
                 matchedSkills.add(skill);
             }
         }
+
+        // 计算优选技能匹配
+        int matchedPreferred = 0;
         for (String skill : preferredSkills) {
             if (applicantSkills.contains(skill)) {
                 matchedPreferred++;
@@ -43,35 +54,38 @@ public class MatchingService {
             }
         }
 
-        double requiredScore =
-                requiredSkills.isEmpty() ? 70.0 : 70.0 * matchedRequired / requiredSkills.size();
-        double preferredScore =
-                preferredSkills.isEmpty()
-                        ? 20.0
-                        : 20.0 * matchedPreferred / preferredSkills.size();
+        // 计算三项分数
+        double requiredScore = requiredSkills.isEmpty()
+                ? REQUIRED_WEIGHT
+                : REQUIRED_WEIGHT * matchedRequired / requiredSkills.size();
+
+        double preferredScore = preferredSkills.isEmpty()
+                ? PREFERRED_WEIGHT
+                : PREFERRED_WEIGHT * matchedPreferred / preferredSkills.size();
+
         double availabilityScore = availabilityScore(applicant, position);
 
-        int score = (int) Math.round(requiredScore + preferredScore + availabilityScore);
-        String explanation =
-                "Required skills matched "
-                        + matchedRequired
-                        + "/"
-                        + Math.max(requiredSkills.size(), 1)
-                        + ", preferred skills matched "
-                        + matchedPreferred
-                        + "/"
-                        + Math.max(preferredSkills.size(), 1)
-                        + ", weekly availability "
-                        + applicant.getAvailableHoursPerWeek()
-                        + "/"
-                        + position.getWeeklyHours()
-                        + " hours.";
+        // 总分四舍五入并封顶100
+        int totalScore = (int) Math.round(requiredScore + preferredScore + availabilityScore);
+        int finalScore = Math.min(totalScore, 100);
+
+        // 构建说明文本
+        String explanation = String.format(
+                "Required skills matched %d/%d, preferred skills matched %d/%d, weekly availability %.0f/%d hours.",
+                matchedRequired,
+                Math.max(requiredSkills.size(), 1),
+                matchedPreferred,
+                Math.max(preferredSkills.size(), 1),
+                applicant.getAvailableHoursPerWeek(),
+                position.getWeeklyHours()
+        );
 
         return new MatchingResult(
-                Math.min(score, 100),
+                finalScore,
                 joinSkills(matchedSkills),
                 joinSkills(missingSkills),
-                explanation);
+                explanation
+        );
     }
 
     public Set<String> normalizeSkills(String rawSkills) {
@@ -81,30 +95,40 @@ public class MatchingService {
 
         String[] parts = rawSkills.split("[,;，、/\\n\\r]+");
         Set<String> normalized = new LinkedHashSet<>();
+
         for (String part : parts) {
-            String skill = part == null ? "" : part.trim().toLowerCase(Locale.ROOT);
+            if (part == null) continue;
+
+            String skill = part.trim().toLowerCase(Locale.ROOT);
             if (!skill.isEmpty()) {
                 normalized.add(skill);
             }
         }
+
         return normalized;
     }
 
     private double availabilityScore(ApplicantProfile applicant, Position position) {
-        if (position.getWeeklyHours() <= 0) {
-            return 10.0;
+        int requiredHours = position.getWeeklyHours();
+        double availableHours = applicant.getAvailableHoursPerWeek();
+
+        if (requiredHours <= 0) {
+            return AVAILABILITY_WEIGHT;
         }
 
-        if (applicant.getAvailableHoursPerWeek() >= position.getWeeklyHours()) {
-            return 10.0;
+        if (availableHours >= requiredHours) {
+            return AVAILABILITY_WEIGHT;
         }
 
-        return 10.0
-                * Math.max(0.0, applicant.getAvailableHoursPerWeek())
-                / position.getWeeklyHours();
+        return AVAILABILITY_WEIGHT * Math.max(0.0, availableHours) / requiredHours;
     }
 
     private String joinSkills(List<String> skills) {
-        return skills.stream().filter(skill -> !skill.isBlank()).collect(Collectors.joining(", "));
+        if (skills == null || skills.isEmpty()) {
+            return "";
+        }
+        return skills.stream()
+                .filter(skill -> !HtmlUtil.isBlank(skill))
+                .collect(Collectors.joining(", "));
     }
 }

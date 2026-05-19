@@ -78,21 +78,16 @@ List<String> processedMissingSkills = missingSkills.stream()
     }
 
     public Set<String> normalizeSkills(String rawSkills) {
-        if (HtmlUtil.isBlank(rawSkills)) {
-            return new LinkedHashSet<>();
-        }
-
-        String[] parts = rawSkills.split("[,;，、/\\n\\r]+");
-        Set<String> normalized = new LinkedHashSet<>();
-        for (String part : parts) {
-            String skill = part == null ? "" : part.trim().toLowerCase(Locale.ROOT);
-            if (!skill.isEmpty()) {
-                normalized.add(skill);
-            }
-        }
-        return normalized;
+    if (HtmlUtil.isBlank(rawSkills)) {
+        return new LinkedHashSet<>();
     }
 
+    return Arrays.stream(rawSkills.split("[,;，、/\\n\\r]+"))
+            .map(String::trim)
+            .map(s -> s.toLowerCase(Locale.ROOT))
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+}
     private double availabilityScore(ApplicantProfile applicant, Position position) {
         if (position.getWeeklyHours() <= 0) {
             return 10.0;

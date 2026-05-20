@@ -277,7 +277,15 @@ public class RecruitmentService {
         require(applicant != null, "The applicant profile was not found.");
 
         String safeOriginalFileName = sanitizeFileName(uploadedFile.getOriginalFileName());
-        String extension = extractExtension(safeOriginalFileName);
+        String extension = extractExtension(safeOriginalFileName).toLowerCase(Locale.ROOT);
+        require(
+            List.of(".pdf", ".doc", ".docx").contains(extension),
+            "Only PDF, DOC, or DOCX files are allowed."
+        );
+        require(
+            uploadedFile.getContent().length <= 5 * 1024 * 1024,
+            "The uploaded CV must not exceed 5 MB."
+        );
         String storedFileName = applicantId + "-" + System.currentTimeMillis() + extension;
         Path targetFile = uploadsDirectory.resolve(storedFileName).normalize();
         require(targetFile.startsWith(uploadsDirectory.normalize()), "Invalid file path.");

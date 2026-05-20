@@ -10,6 +10,11 @@ import java.util.Map;
 
 public class WorkloadService {
 
+    private static final String STATUS_SELECTED = "SELECTED";
+    private static final String STATUS_OVERLOADED = "OVERLOADED";
+    private static final String STATUS_AT_RISK = "AT_RISK";
+    private static final String STATUS_BALANCED = "BALANCED";
+
     public List<WorkloadEntry> buildReport(
             List<ApplicantProfile> applicants,
             List<Position> positions,
@@ -25,7 +30,7 @@ public class WorkloadService {
         Map<String, List<String>> moduleLabels = new HashMap<>();
 
         for (ApplicationRecord application : applications) {
-            if (!"SELECTED".equals(application.getStatus())) {
+            if (!STATUS_SELECTED.equals(application.getStatus())) {
                 continue;
             }
 
@@ -34,26 +39,28 @@ public class WorkloadService {
                 continue;
             }
 
-            assignedHours.merge(
-                    application.getApplicantId(), position.getWeeklyHours(), Integer::sum);
-            selectedCounts.merge(application.getApplicantId(), 1, Integer::sum);
+            String applicantId = application.getApplicantId();
+
+            assignedHours.merge(applicantId, position.getWeeklyHours(), Integer::sum);
+            selectedCounts.merge(applicantId, 1, Integer::sum);
             moduleLabels
-                    .computeIfAbsent(application.getApplicantId(), key -> new ArrayList<>())
+                    .computeIfAbsent(applicantId, key -> new ArrayList<>())
                     .add(position.getModuleCode() + " " + position.getModuleName());
         }
 
         List<WorkloadEntry> results = new ArrayList<>();
         for (ApplicantProfile applicant : applicants) {
-            int currentHours = assignedHours.getOrDefault(applicant.getId(), 0);
+            String applicantId = applicant.getId();
+            int currentHours = assignedHours.getOrDefault(applicantId, 0);
             int maxHours = Math.max(applicant.getAvailableHoursPerWeek(), 0);
-            int selectedPositions = selectedCounts.getOrDefault(applicant.getId(), 0);
-            String modules = String.join(" / ", moduleLabels.getOrDefault(applicant.getId(), List.of()));
+            int selectedPositions = selectedCounts.getOrDefault(applicantId, 0);
+            String modules = String.join(" / ", moduleLabels.getOrDefault(applicantId, List.of()));
             String status = evaluateStatus(currentHours, maxHours);
             String recommendation = buildRecommendation(status, currentHours, maxHours);
 
             results.add(
                     new WorkloadEntry(
-                            applicant.getId(),
+                            applicantId,
                             applicant.getFullName(),
                             currentHours,
                             maxHours,
@@ -63,42 +70,43 @@ public class WorkloadService {
                             recommendation));
         }
 
-        results.sort((left, right) -> {
-            int byStatus = Integer.compare(statusRank(right.getStatus()), statusRank(left.getStatus()));
-            if (byStatus != 0) {
-                return byStatus;
-            }
-            int byHours = Integer.compare(right.getAssignedHours(), left.getAssignedHours());
-            if (byHours != 0) {
-                return byHours;
-            }
-            return safe(left.getApplicantName()).compareToIgnoreCase(safe(right.getApplicantName()));
-        });
+        results.sort(this::compareWorkloadEntries);
         return results;
     }
 
     public String evaluateStatus(int assignedHours, int maxHours) {
         if (assignedHours > maxHours) {
-            return "OVERLOADED";
-        }
-        if (maxHours == 0 && assignedHours > 0) {
-            return "OVERLOADED";
+            return STATUS_OVERLOADED;
         }
         if (maxHours > 0 && assignedHours >= Math.ceil(maxHours * 0.8)) {
-            return "AT_RISK";
+            return STATUS_AT_RISK;
         }
-        return "BALANCED";
+        return STATUS_BALANCED;
+    }
+
+    private int compareWorkloadEntries(WorkloadEntry left, WorkloadEntry right) {
+        int byStatus = Integer.compare(statusRank(right.getStatus()), statusRank(left.getStatus()));
+        if (byStatus != 0) {
+            return byStatus;
+        }
+
+        int byHours = Integer.compare(right.getAssignedHours(), left.getAssignedHours());
+        if (byHours != 0) {
+            return byHours;
+        }
+
+        return safe(left.getApplicantName()).compareToIgnoreCase(safe(right.getApplicantName()));
     }
 
     private String buildRecommendation(String status, int assignedHours, int maxHours) {
         return switch (status) {
-            case "OVERLOADED" ->
+            case STATUS_OVERLOADED ->
                     "Assigned hours exceed the recommended limit ("
                             + assignedHours
                             + "/"
                             + maxHours
                             + "). Reassign this workload before confirming more positions.";
-            case "AT_RISK" ->
+            case STATUS_AT_RISK ->
                     "Assigned hours are close to the limit ("
                             + assignedHours
                             + "/"
@@ -114,8 +122,8 @@ public class WorkloadService {
 
     private int statusRank(String status) {
         return switch (status) {
-            case "OVERLOADED" -> 2;
-            case "AT_RISK" -> 1;
+            case STATUS_OVERLOADED -> 2;
+            case STATUS_AT_RISK -> 1;
             default -> 0;
         };
     }

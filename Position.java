@@ -110,9 +110,11 @@ public class Position {
         return createdAt;
     }
 
-    public void setCreatedAt(String createdAt) {
-        this.createdAt = createdAt;
+    public void setCreatedAt() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        this.createdAt = LocalDateTime.now().format(formatter);
     }
+    
     public enum PositionStatus {
     DRAFT, OPEN, RECRUITING, CLOSED
     }

@@ -55,21 +55,26 @@ public final class WebUtil {
     }
 
     public static void sendFile(
-            HttpExchange exchange, Path file, String contentType, String downloadName) throws IOException {
-        if (!Files.exists(file)) {
-            throw new ValidationException("The requested file does not exist.");
-        }
-
-        exchange.getResponseHeaders().set(
-                "Content-Type", contentType == null ? "application/octet-stream" : contentType);
-        exchange.getResponseHeaders().set(
-                "Content-Disposition",
-                buildContentDisposition(downloadName == null ? file.getFileName().toString() : downloadName));
-        exchange.sendResponseHeaders(200, Files.size(file));
-        try (OutputStream outputStream = exchange.getResponseBody()) {
-            Files.copy(file, outputStream);
-        }
+        HttpExchange exchange, Path file, String contentType, String downloadName) throws IOException {
+    if (!Files.exists(file)) {
+        throw new ValidationException("The requested file does not exist.");
     }
+
+    
+    String finalContentType = (contentType != null) ? contentType : "application/octet-stream";
+    String finalDownloadName = (downloadName != null) ? downloadName : file.getFileName().toString();
+
+   
+    var headers = exchange.getResponseHeaders();
+    headers.set("Content-Type", finalContentType);
+    headers.set("Content-Disposition", buildContentDisposition(finalDownloadName));
+
+    exchange.sendResponseHeaders(200, Files.size(file));
+    
+    try (OutputStream outputStream = exchange.getResponseBody()) {
+        Files.copy(file, outputStream);
+    }
+}
 
     private static Map<String, String> parseKeyValuePairs(String content) {
         Map<String, String> values = new LinkedHashMap<>();

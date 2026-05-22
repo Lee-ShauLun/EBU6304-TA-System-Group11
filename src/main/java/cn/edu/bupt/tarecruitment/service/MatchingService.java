@@ -17,19 +17,23 @@ public class MatchingService {
         Set<String> requiredSkills = normalizeSkills(position.getRequiredSkills());
         Set<String> preferredSkills = normalizeSkills(position.getPreferredSkills());
 
-        List<String> missingSkills = new ArrayList<>();
+       List<String> missingSkills = new ArrayList<>();
+        List<String> matchedSkills = new ArrayList<>(); 
         int matchedRequired = 0;
         for (String skill : requiredSkills) {
             if (applicantSkills.contains(skill)) {
                 matchedRequired++;
+                matchedSkills.add(skill); 
             } else {
                 missingSkills.add(skill);
             }
         }
-List<String> processedMissingSkills = missingSkills.stream()
+        
+        List<String> processedMissingSkills = missingSkills.stream()
                 .distinct()
                 .sorted()
                 .collect(Collectors.toList());
+        
         int matchedPreferred = 0;
         List<String> matchedSkills = new ArrayList<>();
         for (String skill : requiredSkills) {

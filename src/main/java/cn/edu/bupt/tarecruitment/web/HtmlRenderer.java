@@ -22,10 +22,10 @@ public class HtmlRenderer {
                 <section class='hero'>
                     <div>
                         <span class='eyebrow'>International School TA Recruitment System</span>
-                        <h1>Two portals. Two clear workflows.</h1>
+                        <h1>Three portals. Clear recruitment control.</h1>
                         <p>
-                            Applicants and recruiters now use separate systems. Sign in to the portal that
-                            matches your role, then continue with a focused workflow.
+                            Applicants, recruiters, and administrators now use dedicated workflows for
+                            applications, selection decisions, and workload governance.
                         </p>
                     </div>
                     <div class='hero-card'>
@@ -33,6 +33,7 @@ public class HtmlRenderer {
                         <ul class='bullet-list'>
                             <li>Applicant registration, profile editing, CV upload, job search, and application tracking.</li>
                             <li>Recruiter registration, position publishing, applicant review, and selection workflow.</li>
+                            <li>Admin workload monitoring and cross-position application oversight.</li>
                             <li>Role-based login with account and password.</li>
                             <li>English-only interface for demos, reviews, and coursework submission.</li>
                         </ul>
@@ -53,6 +54,14 @@ public class HtmlRenderer {
                         <div class='portal-actions'>
                             <a class='button-link secondary-link' href='/login?role=RECRUITER'>Sign in as Recruiter</a>
                             <a class='text-link' href='/register?role=RECRUITER'>Create recruiter account</a>
+                        </div>
+                    </article>
+                    <article class='portal-card admin-theme'>
+                        <h2>Admin Portal</h2>
+                        <p>Track overall TA workload, identify overloaded candidates, and audit application progress.</p>
+                        <div class='portal-actions'>
+                            <a class='button-link admin-link' href='/login?role=ADMIN'>Sign in as Admin</a>
+                            <a class='text-link' href='/register?role=ADMIN'>Create admin account</a>
                         </div>
                     </article>
                 </section>
@@ -226,7 +235,7 @@ public class HtmlRenderer {
                                             <label>Phone<input name='phone' value='%s'></label>
                                             <label>Major<input name='major' value='%s'></label>
                                             <label>Year of study<input name='yearOfStudy' value='%s'></label>
-                                            <label>Weekly availability (hours)<input name='availableHoursPerWeek' type='number' min='0' value='%s'></label>
+                                            <label>Weekly availability (hours)<input name='availableHoursPerWeek' type='number' min='0' max='40' value='%s'></label>
                                             <label class='full'>Skills<textarea name='skills' rows='5' placeholder='For example: Java, tutoring, data analysis'>%s</textarea></label>
                                             <div class='full actions'><button type='submit'>Save profile</button></div>
                                         </form>
@@ -282,6 +291,7 @@ public class HtmlRenderer {
                                         "Upload CV",
                                         """
                                         %s
+                                        <p class='hint'>Allowed formats: PDF, DOC, DOCX, or TXT. Maximum size: 5 MB.</p>
                                         <form method='post' action='/applicant/cv' enctype='multipart/form-data' class='stack-form'>
                                             <label>Select file<input type='file' name='cvFile' required></label>
                                             <button type='submit'>Upload CV</button>
@@ -497,10 +507,10 @@ public class HtmlRenderer {
                                             <label>Position title<input name='moduleName' required></label>
                                             <label>Recruiter name<input name='organiserName' required value='%s'></label>
                                             <label>Recruiter email<input name='organiserEmail' type='email' required></label>
-                                            <label>Weekly hours<input name='weeklyHours' type='number' min='1' value='6' required></label>
-                                            <label>Quota<input name='quota' type='number' min='1' value='1' required></label>
+                                            <label>Weekly hours<input name='weeklyHours' type='number' min='1' max='20' value='6' required></label>
+                                            <label>Quota<input name='quota' type='number' min='1' max='20' value='1' required></label>
                                             <label class='full'>Description<textarea name='description' rows='4'></textarea></label>
-                                            <label class='full'>Required skills<textarea name='requiredSkills' rows='3'></textarea></label>
+                                            <label class='full'>Required skills<textarea name='requiredSkills' rows='3' required></textarea></label>
                                             <label class='full'>Preferred skills<textarea name='preferredSkills' rows='3'></textarea></label>
                                             <div class='full actions'><button type='submit'>Publish position</button></div>
                                         </form>
@@ -617,20 +627,130 @@ public class HtmlRenderer {
                 "Workload Board", "recruiter", "workload", account, body, notice, error);
     }
 
-    public String renderErrorPage(String title, String message) {
+    public String renderAdminDashboard(
+            UserAccount account,
+            DashboardStats stats,
+            List<WorkloadEntry> workloadEntries,
+            List<ApplicationRecord> applications,
+            String notice,
+            String error) {
+        int overloadedCount = 0;
+        int atRiskCount = 0;
+        for (WorkloadEntry entry : workloadEntries) {
+            if ("OVERLOADED".equals(entry.getStatus())) {
+                overloadedCount++;
+            } else if ("AT_RISK".equals(entry.getStatus())) {
+                atRiskCount++;
+            }
+        }
+        int pendingCount =
+                (int) applications.stream().filter(application -> "PENDING".equals(application.getStatus())).count();
+
         String body =
-                "<section class='auth-shell'>"
-                        + "<article class='auth-card'>"
-                        + "<h1>"
-                        + HtmlUtil.escape(title)
-                        + "</h1>"
-                        + "<p>"
-                        + HtmlUtil.escape(message)
-                        + "</p>"
-                        + "<p class='hint'><a class='text-link' href='/'>Return to portal selection</a></p>"
-                        + "</article></section>";
-        return publicLayout(title, body, null, null);
+                metrics(
+                                metricCard("Applicants", String.valueOf(stats.getApplicantCount()), "Profiles currently stored in the system."),
+                                metricCard("Open positions", String.valueOf(stats.getOpenPositionCount()), "Positions accepting applications."),
+                                metricCard("Applications", String.valueOf(stats.getApplicationCount()), "Submitted application records."),
+                                metricCard("Pending", String.valueOf(pendingCount), "Applications waiting for recruiter decisions."),
+                                metricCard("Overloaded", String.valueOf(overloadedCount), "Applicants above declared weekly availability."),
+                                metricCard("At risk", String.valueOf(atRiskCount), "Applicants close to their weekly limit."))
+                        + """
+                        <section class='panel-grid'>
+                            %s
+                            %s
+                        </section>
+                        """
+                                .formatted(
+                                        panel(
+                                                "Admin actions",
+                                                """
+                                                <div class='mini-list'>
+                                                    <a class='mini-link' href='/admin/workload'>Review workload board</a>
+                                                    <a class='mini-link' href='/admin/applications'>Review all applications</a>
+                                                </div>
+                                                """),
+                                        panel(
+                                                "Governance checklist",
+                                                """
+                                                <ul class='bullet-list'>
+                                                    <li>Check overloaded and at-risk applicants before final allocation.</li>
+                                                    <li>Audit pending applications across all open positions.</li>
+                                                    <li>Use workload recommendations as explainable decision support.</li>
+                                                </ul>
+                                                """));
+
+        return portalLayout("Admin Dashboard", "admin", "dashboard", account, body, notice, error);
     }
+
+    public String renderAdminWorkload(
+            UserAccount account,
+            List<WorkloadEntry> workloadEntries,
+            String notice,
+            String error) {
+        String body =
+                "<section class='single-panel'>"
+                        + panel("All TA workload", renderWorkloadTable(workloadEntries))
+                        + "</section>";
+        return portalLayout("Admin Workload", "admin", "workload", account, body, notice, error);
+    }
+
+    public String renderAdminApplications(
+            UserAccount account,
+            List<ApplicationRecord> applications,
+            Map<String, ApplicantProfile> applicantIndex,
+            Map<String, Position> positionIndex,
+            String notice,
+            String error) {
+        StringBuilder table = new StringBuilder();
+        if (applications.isEmpty()) {
+            table.append("<p class='empty'>No applications have been submitted yet.</p>");
+        } else {
+            table.append("<table><thead><tr>");
+            table.append("<th>Applicant</th><th>Position</th><th>Status</th><th>Match</th><th>Missing skills</th><th>Updated</th>");
+            table.append("</tr></thead><tbody>");
+            for (ApplicationRecord application : applications) {
+                ApplicantProfile applicant = applicantIndex.get(application.getApplicantId());
+                Position position = positionIndex.get(application.getPositionId());
+                table.append("<tr>");
+                table.append("<td>")
+                        .append(applicant == null ? "Unknown applicant" : HtmlUtil.escape(applicant.getFullName()))
+                        .append("</td>");
+                table.append("<td>")
+                        .append(
+                                position == null
+                                        ? "Archived position"
+                                        : HtmlUtil.escape(position.getModuleCode() + " | " + position.getModuleName()))
+                        .append("</td>");
+                table.append("<td>").append(statusBadge(application.getStatus())).append("</td>");
+                table.append("<td>").append(application.getMatchScore()).append("</td>");
+                table.append("<td>")
+                        .append(
+                                HtmlUtil.isBlank(application.getMissingSkills())
+                                        ? "None"
+                                        : HtmlUtil.escape(application.getMissingSkills()))
+                        .append("</td>");
+                table.append("<td>").append(HtmlUtil.escape(application.getUpdatedAt())).append("</td>");
+                table.append("</tr>");
+            }
+            table.append("</tbody></table>");
+        }
+
+        String body = "<section class='single-panel'>" + panel("Application overview", table.toString()) + "</section>";
+        return portalLayout("Admin Applications", "admin", "applications", account, body, notice, error);
+    }
+
+    public String renderErrorPage(String title, String message) {
+    String template = "<section class='auth-shell'>"
+            + "<article class='auth-card'>"
+            + "<h1>%s</h1>"
+            + "<p>%s</p>"
+            + "<p class='hint'><a class='text-link' href='/'>Return to portal selection</a></p>"
+            + "</article></section>";
+
+    String body = String.format(template, HtmlUtil.escape(title), HtmlUtil.escape(message));
+    
+    return publicLayout(title, body, null, null);
+}
 
     private String renderPositionCard(
             Position position,
@@ -807,6 +927,7 @@ public class HtmlRenderer {
                 <a class='nav-link %s' href='/'>Home</a>
                 <a class='nav-link' href='/login?role=APPLICANT'>Applicant sign in</a>
                 <a class='nav-link' href='/login?role=RECRUITER'>Recruiter sign in</a>
+                <a class='nav-link' href='/login?role=ADMIN'>Admin sign in</a>
                 """
                         .formatted("current");
         return layout(title, bodyHtml, nav, notice, error, null, null);
@@ -820,7 +941,12 @@ public class HtmlRenderer {
             String bodyHtml,
             String notice,
             String error) {
-        String nav = "applicant".equals(portal) ? applicantNav(activeNav) : recruiterNav(activeNav);
+        String nav =
+                switch (portal) {
+                    case "admin" -> adminNav(activeNav);
+                    case "applicant" -> applicantNav(activeNav);
+                    default -> recruiterNav(activeNav);
+                };
         return layout(title, bodyHtml, nav, notice, error, account, portal);
     }
 
@@ -836,7 +962,7 @@ public class HtmlRenderer {
         String asideClass =
                 account == null
                         ? "sidebar public-sidebar"
-                        : "sidebar " + ("applicant".equals(portal) ? "applicant-sidebar" : "recruiter-sidebar");
+                        : "sidebar " + portal + "-sidebar";
         String subtitle =
                 account == null
                         ? "Choose the correct role before entering the system."
@@ -926,6 +1052,27 @@ public class HtmlRenderer {
         return "<section class='panel'><h2>" + HtmlUtil.escape(title) + "</h2>" + innerHtml + "</section>";
     }
 
+    private String renderWorkloadTable(List<WorkloadEntry> workloadEntries) {
+        StringBuilder table = new StringBuilder();
+        table.append("<table><thead><tr>");
+        table.append("<th>Applicant</th><th>Assigned hours</th><th>Selected positions</th><th>Modules</th><th>Status</th><th>Recommendation</th>");
+        table.append("</tr></thead><tbody>");
+        for (WorkloadEntry entry : workloadEntries) {
+            table.append("<tr>");
+            table.append("<td>").append(HtmlUtil.escape(entry.getApplicantName())).append("</td>");
+            table.append("<td>").append(entry.getAssignedHours()).append("/").append(entry.getMaxHours()).append(" h</td>");
+            table.append("<td>").append(entry.getSelectedPositionCount()).append("</td>");
+            table.append("<td>")
+                    .append(HtmlUtil.isBlank(entry.getModules()) ? "-" : HtmlUtil.escape(entry.getModules()))
+                    .append("</td>");
+            table.append("<td>").append(statusBadge(entry.getStatus())).append("</td>");
+            table.append("<td>").append(HtmlUtil.escape(entry.getRecommendation())).append("</td>");
+            table.append("</tr>");
+        }
+        table.append("</tbody></table>");
+        return table.toString();
+    }
+
     private String renderFlash(String notice, String error) {
         if (!HtmlUtil.isBlank(error)) {
             return "<div class='flash error'>" + HtmlUtil.escape(error) + "</div>";
@@ -950,11 +1097,20 @@ public class HtmlRenderer {
                 + navLink("/recruiter/workload", "Workload Board", "workload".equals(activeNav));
     }
 
+    private String adminNav(String activeNav) {
+        return navLink("/admin", "Dashboard", "dashboard".equals(activeNav))
+                + navLink("/admin/workload", "Workload Board", "workload".equals(activeNav))
+                + navLink("/admin/applications", "Applications", "applications".equals(activeNav));
+    }
+
     private String navLink(String href, String label, boolean active) {
         return "<a class='nav-link" + (active ? " active" : "") + "' href='" + href + "'>" + HtmlUtil.escape(label) + "</a>";
     }
 
     private String portalTitle(String role) {
+        if (RecruitmentService.ROLE_ADMIN.equals(role)) {
+            return "Admin Portal";
+        }
         if (RecruitmentService.ROLE_RECRUITER.equals(role)) {
             return "Recruiter Portal";
         }
@@ -1000,6 +1156,8 @@ public class HtmlRenderer {
                    --applicant-soft: #d4ece7;
                    --recruiter: #b85c38;
                    --recruiter-soft: #f5d8c6;
+                   --admin: #4b5d8f;
+                   --admin-soft: #d9e2fb;
                    --success: #2f855a;
                    --warning: #b7791f;
                    --danger: #c53030;
@@ -1039,6 +1197,7 @@ public class HtmlRenderer {
                .public-sidebar { background: rgba(19, 48, 73, 0.96); }
                .applicant-sidebar { background: rgba(33, 104, 105, 0.97); }
                .recruiter-sidebar { background: rgba(184, 92, 56, 0.97); }
+               .admin-sidebar { background: rgba(75, 93, 143, 0.98); }
 
                .brand {
                    display: flex;
@@ -1144,6 +1303,7 @@ public class HtmlRenderer {
                .portal-card h2, .auth-card h1, .panel h2, .position-card h3 { margin-top: 0; }
                .applicant-theme { border-color: rgba(33, 104, 105, 0.2); }
                .recruiter-theme { border-color: rgba(184, 92, 56, 0.2); }
+               .admin-theme { border-color: rgba(75, 93, 143, 0.25); }
 
                .portal-actions {
                    display: flex;
@@ -1168,6 +1328,7 @@ public class HtmlRenderer {
                }
 
                .secondary-link { background: var(--applicant); box-shadow: 0 10px 24px rgba(33, 104, 105, 0.22); }
+               .admin-link { background: var(--admin); box-shadow: 0 10px 24px rgba(75, 93, 143, 0.22); }
                button.secondary { background: #768390; box-shadow: none; }
 
                .auth-shell {

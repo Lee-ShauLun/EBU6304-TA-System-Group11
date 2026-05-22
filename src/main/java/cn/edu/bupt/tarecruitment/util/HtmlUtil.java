@@ -27,11 +27,12 @@ public final class HtmlUtil {
     }
 
     public static String nl2br(String value) {
-        return escape(value).replace("\r\n", "<br>").replace("\n", "<br>");
+        String escaped = escape(value);
+        return escaped.replace("\r\n", "<br>").replace("\n", "<br>");
     }
 
     public static boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
+        return value == null || value.isBlank();
     }
 
     public static String nonNull(String value) {

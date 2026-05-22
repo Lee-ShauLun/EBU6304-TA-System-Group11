@@ -7,7 +7,7 @@ public class CvDocument {
     private String originalFileName;
     private String storedFileName;
     private String contentType;
-    private long size = 0; // 仅这里优化：显式初始化，更安全
+    private long size;
     private String uploadedAt;
 
     public CvDocument() {

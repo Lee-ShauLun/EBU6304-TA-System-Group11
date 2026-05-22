@@ -1,6 +1,10 @@
 package cn.edu.bupt.tarecruitment.store;
 
+import cn.edu.bupt.tarecruitment.model.ApplicantProfile;
 import cn.edu.bupt.tarecruitment.model.Position;
+import cn.edu.bupt.tarecruitment.model.UserAccount;
+import cn.edu.bupt.tarecruitment.service.RecruitmentService;
+import cn.edu.bupt.tarecruitment.util.PasswordUtil;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -12,6 +16,31 @@ public final class DemoDataFactory {
     public static SystemData create() {
         SystemData data = new SystemData();
         data.ensureCollections();
+
+        String applicantAccountId = UUID.randomUUID().toString();
+        data.getAccounts().add(account(
+                applicantAccountId,
+                RecruitmentService.ROLE_APPLICANT,
+                "demo_applicant",
+                "Alice Applicant"));
+        data.getAccounts().add(account(
+                UUID.randomUUID().toString(),
+                RecruitmentService.ROLE_RECRUITER,
+                "demo_recruiter",
+                "Riley Recruiter"));
+        data.getAccounts().add(account(
+                UUID.randomUUID().toString(),
+                RecruitmentService.ROLE_ADMIN,
+                "demo_admin",
+                "Avery Admin"));
+        data.getApplicants().add(applicant(
+                applicantAccountId,
+                "Alice Applicant",
+                "alice.applicant@example.com",
+                "Software Engineering",
+                "Year 3",
+                "java, debugging, algorithms, git, communication",
+                12));
 
         data.getPositions().add(position(
                 "INT101",
@@ -47,6 +76,40 @@ public final class DemoDataFactory {
                 1));
 
         return data;
+    }
+
+    private static UserAccount account(String id, String role, String username, String displayName) {
+        UserAccount account = new UserAccount();
+        account.setId(id);
+        account.setRole(role);
+        account.setUsername(username);
+        account.setDisplayName(displayName);
+        account.setPasswordHash(PasswordUtil.sha256("password123"));
+        account.setCreatedAt(OffsetDateTime.now().toString());
+        return account;
+    }
+
+    private static ApplicantProfile applicant(
+            String accountId,
+            String fullName,
+            String email,
+            String major,
+            String yearOfStudy,
+            String skills,
+            int availableHours) {
+        ApplicantProfile applicant = new ApplicantProfile();
+        applicant.setId(UUID.randomUUID().toString());
+        applicant.setAccountId(accountId);
+        applicant.setFullName(fullName);
+        applicant.setEmail(email);
+        applicant.setPhone("");
+        applicant.setMajor(major);
+        applicant.setYearOfStudy(yearOfStudy);
+        applicant.setSkills(skills);
+        applicant.setAvailableHoursPerWeek(availableHours);
+        applicant.setCreatedAt(OffsetDateTime.now().toString());
+        applicant.setUpdatedAt(OffsetDateTime.now().toString());
+        return applicant;
     }
 
     private static Position position(

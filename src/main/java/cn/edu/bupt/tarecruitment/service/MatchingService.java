@@ -20,16 +20,31 @@ public class MatchingService {
         Set<String> requiredSkills = normalizeSkills(position.getRequiredSkills());
         Set<String> preferedSkills = normalizeSkills(position.getPreferredSkills());
 
-        List<String> missingSkills = new ArrayList<>();
+       List<String> missingSkills = new ArrayList<>();
+        List<String> matchedSkills = new ArrayList<>(); 
         int matchedRequired = 0;
         for (String skill : requiredSkills) {
             if (applicantSkills.contains(skill)) {
                 matchedRequired++;
+                matchedSkills.add(skill); 
             } else {
                 missingSkills.add(skill);
             }
         }
+List<String> processedMissingSkills = missingSkills.stream()
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
 
+        int matchedPreferred = 0;
+        for (String skill : preferredSkills) {
+            if (applicantSkills.contains(skill)) {
+                matchedPreferred++;
+                if (!matchedSkills.contains(skill)) {
+                    matchedSkills.add(skill);
+                }
+            }
+        }
         int matchedPreferred = 0;
         List<String> matchedSkills = new ArrayList<>();
         for (String skill : requiredSkills) {
@@ -78,21 +93,16 @@ public class MatchingService {
     }
 
     public Set<String> normalizeSkills(String rawSkills) {
-        if (HtmlUtil.isBlank(rawSkills)) {
-            return new LinkedHashSet<>();
-        }
-
-        String[] parts = rawSkills.split("[,;，、/\\n\\r]+");
-        Set<String> normalized = new LinkedHashSet<>();
-        for (String part : parts) {
-            String skill = part == null ? "" : part.trim().toLowerCase(Locale.ROOT);
-            if (!skill.isEmpty()) {
-                normalized.add(skill);
-            }
-        }
-        return normalized;
+    if (HtmlUtil.isBlank(rawSkills)) {
+        return new LinkedHashSet<>();
     }
 
+    return Arrays.stream(rawSkills.split("[,;，、/\\n\\r]+"))
+            .map(String::trim)
+            .map(s -> s.toLowerCase(Locale.ROOT))
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+}
     private double availabilityScore(ApplicantProfile applicant, Position position) {
         if (position.getWeklyHours() <= 0) {
             return 10.0;

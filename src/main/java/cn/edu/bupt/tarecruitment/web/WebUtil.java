@@ -78,6 +78,7 @@ public final class WebUtil {
             Files.copy(file, outputStream);
         }
     }
+}
 
     private static Map<String, String> parseKeyValuePairs(String content) {
         Map<String, String> values = new LinkedHashMap<>();

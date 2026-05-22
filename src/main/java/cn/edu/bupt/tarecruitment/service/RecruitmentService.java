@@ -107,25 +107,24 @@ public class RecruitmentService {
     }
 
     public synchronized UserAccount authenticate(String role, String username, String password) {
-        String normalizedRole = normalizeRole(role);
-        String normalizedUsername = normalizeUsername(username);
-        require(!normalizedUsername.isEmpty(), "Username is required.");
-        require(password != null && !password.isEmpty(), "Password is required.");
+    String normalizedRole = normalizeRole(role);
+    String normalizedUsername = normalizeUsername(username);
+    
+    require(!normalizedUsername.isEmpty(), "Username is required.");
+    require(password != null && !password.isEmpty(), "Password is required.");
 
-        UserAccount account =
-                dataStore.read().getAccounts().stream()
-                        .filter(item -> normalizedRole.equals(item.getRole()))
-                        .filter(item -> normalizedUsername.equals(normalizeUsername(item.getUsername())))
-                        .findFirst()
-                        .orElse(null);
+    // 合并过滤条件
+    UserAccount account = dataStore.read().getAccounts().stream()
+            .filter(item -> normalizedRole.equals(item.getRole()) && 
+                            normalizedUsername.equals(normalizeUsername(item.getUsername())))
+            .findFirst()
+            .orElse(null);
 
-        require(account != null, "No account was found for this role and username.");
-        require(
-                PasswordUtil.sha256(password).equals(account.getPasswordHash()),
-                "Incorrect password.");
-        return account;
-    }
-
+    require(account != null, "No account was found for this role and username.");
+    require(PasswordUtil.sha256(password).equals(account.getPasswordHash()), "Incorrect password.");
+    
+    return account;
+}
     public synchronized UserAccount findAccountById(String accountId) {
         if (HtmlUtil.isBlank(accountId)) {
             return null;

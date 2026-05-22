@@ -174,20 +174,22 @@ public class RecruitmentHttpHandler implements HttpHandler {
     }
 
     private void handleRegisterPage(HttpExchange exchange, UserSession session) throws IOException {
-        if (session != null) {
-            WebUtil.redirect(exchange, defaultPortalPath(session.role()));
-            return;
-        }
-
-        var rawQuery = exchange.getRequestURI().getRawQuery();
-        var query = WebUtil.parseQuery(rawQuery);
-        var role = normalizedRole(query.getOrDefault("role", RecruitmentService.ROLE_APPLICANT));
-        
-        WebUtil.sendHtml(
-                exchange,
-                200,
-                renderer.renderRegisterPage(role, query.get("notice"), query.get("error")));
+    if (session != null) {
+        WebUtil.redirect(exchange, defaultPortalPath(session.role()));
+        return;
     }
+
+    var query = WebUtil.parseQuery(exchange.getRequestURI().getRawQuery());
+    
+    // 提前准备好渲染所需的各个参数
+    var role = normalizedRole(query.getOrDefault("role", RecruitmentService.ROLE_APPLICANT));
+    var noticeMsg = query.get("notice");
+    var errorMsg = query.get("error");
+    
+    // 渲染并发送响应
+    var htmlContent = renderer.renderRegisterPage(role, noticeMsg, errorMsg);
+    WebUtil.sendHtml(exchange, 200, htmlContent);
+}
 
     private void handleRegisterSubmit(HttpExchange exchange) throws IOException {
         Map<String, String> form = WebUtil.parseFormBody(exchange);

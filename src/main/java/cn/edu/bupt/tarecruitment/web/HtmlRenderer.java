@@ -620,19 +620,17 @@ public class HtmlRenderer {
     }
 
     public String renderErrorPage(String title, String message) {
-        String body =
-                "<section class='auth-shell'>"
-                        + "<article class='auth-card'>"
-                        + "<h1>"
-                        + HtmlUtil.escape(title)
-                        + "</h1>"
-                        + "<p>"
-                        + HtmlUtil.escape(message)
-                        + "</p>"
-                        + "<p class='hint'><a class='text-link' href='/'>Return to portal selection</a></p>"
-                        + "</article></section>";
-        return publicLayout(title, body, null, null);
-    }
+    String template = "<section class='auth-shell'>"
+            + "<article class='auth-card'>"
+            + "<h1>%s</h1>"
+            + "<p>%s</p>"
+            + "<p class='hint'><a class='text-link' href='/'>Return to portal selection</a></p>"
+            + "</article></section>";
+
+    String body = String.format(template, HtmlUtil.escape(title), HtmlUtil.escape(message));
+    
+    return publicLayout(title, body, null, null);
+}
 
     private String renderPositionCard(
             Position position,

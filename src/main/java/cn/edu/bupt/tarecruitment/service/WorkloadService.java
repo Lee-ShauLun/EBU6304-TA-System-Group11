@@ -94,9 +94,7 @@ public class WorkloadService {
         if (assignedHours > maxHours) {
             return STATUS_OVERLOADED;
         }
-        if (maxHours == 0 && assignedHours > 0) {
-            return STATUS_OVERLOADED;
-        }
+        
         if (maxHours > 0 && assignedHours >= Math.ceil(maxHours * AT_RISK_THRESHOLD)) {
             return STATUS_AT_RISK;
         }

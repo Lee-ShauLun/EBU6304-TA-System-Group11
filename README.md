@@ -1,69 +1,73 @@
 # TA Recruitment System
 
-This project is a lightweight Java recruitment system designed for the BUPT International School teaching-assistant workflow. It follows the coursework constraints closely: pure Java, no database, no Spring Boot, and file-based persistence only.
+Lightweight Java web application for the BUPT International School Teaching Assistant recruitment workflow. The project follows the coursework constraints: pure Java, no database, no Spring Boot, and XML file-based persistence.
 
-## Current Product Structure
+## Features
 
-- Public entry:
-  Portal selection page
-  Applicant login and registration
-  Recruiter login and registration
-- Applicant Portal:
-  Dashboard
-  Profile management
-  CV upload
-  Open position browsing
-  Application tracking
-- Recruiter Portal:
-  Dashboard
-  Position publishing
-  Applicant review and selection
-  Workload board
+- Applicant portal: registration, login, profile management, CV upload, job search, match preview, job application, and application status tracking.
+- Recruiter portal: registration, login, position publishing, applicant review, CV download, selection/rejection decisions, and workload board.
+- Admin portal: registration, login, overall dashboard, all-TA workload monitoring, and application overview across positions.
+- Explainable matching: weighted rule-based matching using required skills, preferred skills, and weekly availability.
+- Workload governance: balanced, at-risk, and overloaded recommendations based on selected TA workload.
+- XML persistence: system data is saved to local XML files, with uploaded CVs stored in the local uploads folder.
 
 ## Technical Stack
 
-- Backend: `com.sun.net.httpserver.HttpServer`
-- Persistence: `XMLEncoder / XMLDecoder`
-- File upload: handwritten `multipart/form-data` parsing
-- Frontend: server-rendered HTML + inline CSS
-- Runtime: JDK 17+
+- Java 17+
+- `com.sun.net.httpserver.HttpServer`
+- Server-rendered HTML and inline CSS
+- `XMLEncoder` / `XMLDecoder` persistence
+- Handwritten `multipart/form-data` upload parsing
+- No external runtime framework or database
 
 ## Project Structure
 
 ```text
-src/main/java/cn/edu/bupt/tarecruitment
-├── config      application configuration
-├── model       entity classes
-├── service     business logic, matching, workload analysis
-├── store       XML data persistence
-├── util        shared utilities
-└── web         HTTP server, routing, rendering, upload handling
+src/main/java/cn/edu/bupt/tarecruitment/
+  config/      Application configuration
+  model/       Plain Java data models
+  service/     Business logic, matching, workload analysis, validation
+  store/       XML data store and demo data
+  util/        Shared utility helpers
+  web/         HTTP routing, rendering, uploads, responses
+
+src/test/java/cn/edu/bupt/tarecruitment/
+  TestRunner.java  Dependency-free service-level tests
+
+scripts/
+  run.bat          Compile and run on Windows
+  run.sh           Compile and run on macOS/Linux
+  test.bat         Compile and run tests on Windows
+  test.sh          Compile and run tests on macOS/Linux
+  javadoc.bat      Generate JavaDocs on Windows
+  package.bat      Build final submission ZIP on Windows
+
+docs/
+  user-manual.md
+  acceptance-tests.md
+  report-notes.md
+  screenshots/
 ```
 
-## Java Environment
+## Requirements
 
-The workspace already includes a local JDK:
+- JDK 17 or later
+- A terminal or command prompt
+- A modern web browser
 
-`/Users/fjz/software11/.tools/jdk-17.0.18+8`
-
-Your shell config now exposes it globally through:
-
-- `JAVA_HOME=/Users/fjz/software11/.tools/jdk-17/Contents/Home`
-- `PATH=$JAVA_HOME/bin:$PATH`
-
-You can verify it with:
+Check Java:
 
 ```bash
 java -version
 javac -version
 ```
 
-## Run the Project
+## Run on Windows
 
-Recommended:
+Open PowerShell or Command Prompt in the project folder:
 
-```bash
-/Users/fjz/software11/scripts/run.sh
+```bat
+scripts\run.bat
 ```
 
 Then open:
@@ -72,59 +76,136 @@ Then open:
 http://localhost:8080
 ```
 
-## Run on Windows
+## Run on macOS/Linux
 
-Important:
-
-- The bundled `.tools` JDK in this project was downloaded for macOS and cannot be used on Windows.
-- On Windows, install a Windows version of JDK 17 first.
-
-Recommended steps for your classmate:
-
-1. Install JDK 17 for Windows.
-2. Open `cmd` or PowerShell in the project folder.
-3. Verify Java:
-
-```bat
-java -version
-javac -version
+```bash
+chmod +x scripts/run.sh
+./scripts/run.sh
 ```
 
-4. Run:
-
-```bat
-scripts\run.bat
-```
-
-5. Open:
+Then open:
 
 ```text
 http://localhost:8080
 ```
 
-If `java` or `javac` is not recognized, they need to configure `JAVA_HOME` and add `%JAVA_HOME%\bin` to `Path`.
+## Optional Port Configuration
 
-Optional manual activation for the current shell:
+The default port is `8080`. You can override it with either:
 
 ```bash
-source /Users/fjz/software11/scripts/use-local-jdk.sh
+java -Dtrs.port=18080 -cp out cn.edu.bupt.tarecruitment.Main
 ```
 
-## Data Location
+or an environment variable:
 
-- System data: `/Users/fjz/software11/data/trs-data.xml`
-- Uploaded CVs: `/Users/fjz/software11/data/uploads/`
+```bash
+TRS_PORT=18080
+```
 
-## Demo Flow
+## Demo Accounts
 
-1. Open the public landing page and choose either Applicant Portal or Recruiter Portal.
-2. Register an applicant account and complete the profile.
-3. Upload a CV and apply for a position.
-4. Register a recruiter account and publish or review positions.
-5. Select or reject applicants, then check the workload board.
+When the XML data file does not exist, the application creates seed data with these accounts:
 
-## Notes
+| Role | Username | Password |
+| --- | --- | --- |
+| Applicant | `demo_applicant` | `password123` |
+| Recruiter | `demo_recruiter` | `password123` |
+| Admin | `demo_admin` | `password123` |
 
-- The application keeps business data in XML and uploaded files in the local workspace.
-- Login sessions are cookie-based and held in server memory.
-- The interface has been switched to English to support presentation and review scenarios.
+You can also create new accounts from the landing page.
+
+## Run Tests
+
+Windows:
+
+```bat
+scripts\test.bat
+```
+
+macOS/Linux:
+
+```bash
+chmod +x scripts/test.sh
+./scripts/test.sh
+```
+
+Expected result:
+
+```text
+All tests passed: 16/16
+```
+
+## Generate JavaDocs
+
+Windows:
+
+```bat
+scripts\javadoc.bat
+```
+
+Output:
+
+```text
+docs\javadocs\
+```
+
+## Build Submission ZIP
+
+Windows:
+
+```bat
+scripts\package.bat
+```
+
+Output:
+
+```text
+Software_group11.zip
+```
+
+The package script excludes generated classes, local XML data, uploaded files, Git metadata, logs, and local JDK tools.
+
+## Data Storage
+
+Runtime data is stored under:
+
+```text
+data/trs-data.xml
+data/uploads/
+```
+
+These files are intentionally ignored by Git so that local test/demo data does not pollute the submitted source code.
+
+## Main Workflows
+
+Applicant:
+
+1. Register or sign in.
+2. Complete profile and availability.
+3. Upload a CV.
+4. Browse positions and review match explanations.
+5. Apply for a position.
+6. Track application status and decision notes.
+
+Recruiter:
+
+1. Register or sign in.
+2. Publish a TA position.
+3. Review applicants, match scores, missing skills, and CVs.
+4. Select or reject applicants.
+5. Review workload before making final decisions.
+
+Admin:
+
+1. Register or sign in.
+2. Review overall dashboard metrics.
+3. Check the workload board for overloaded or at-risk applicants.
+4. Audit all applications across positions.
+
+## Troubleshooting
+
+- If `java` or `javac` is not recognized, install JDK 17+ and add it to `PATH`.
+- If port `8080` is already in use, run with a different `trs.port`.
+- If you want a clean demo data set, stop the server and remove `data/trs-data.xml` and `data/uploads/`; they will be recreated on the next run.
+- If CV upload fails, confirm the file is PDF, DOC, DOCX, or TXT and is no larger than 5 MB.

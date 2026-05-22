@@ -14,7 +14,15 @@ import java.util.Map;
 
 public final class WebUtil {
 
+    // 常量抽取，避免硬编码
+    private static final String HTML_CONTENT_TYPE = "text/html; charset=UTF-8";
+    private static final String DEFAULT_FILE_CONTENT_TYPE = "application/octet-stream";
+
+    /**
+     * 工具类私有构造器，禁止实例化
+     */
     private WebUtil() {
+        throw new AssertionError("Utility class cannot be instantiated");
     }
 
     public static Map<String, String> parseQuery(String rawQuery) {
@@ -22,8 +30,11 @@ public final class WebUtil {
     }
 
     public static Map<String, String> parseFormBody(HttpExchange exchange) throws IOException {
-        String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        return parseKeyValuePairs(requestBody);
+        // 使用try-with-resources自动关闭流
+        try (var inputStream = exchange.getRequestBody()) {
+            String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            return parseKeyValuePairs(requestBody);
+        }
     }
 
     public static MultipartFormData parseMultipart(HttpExchange exchange) throws IOException {
@@ -34,14 +45,7 @@ public final class WebUtil {
 
     public static void sendHtml(HttpExchange exchange, int statusCode, String html) throws IOException {
         byte[] responseBody = html.getBytes(StandardCharsets.UTF_8);
-        
-        
-        exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
-        
-       
-        
-        exchange.getResponseHeaders().set("Cache-Control", "no-store, no-cache, must-revalidate");
-        
+        exchange.getResponseHeaders().set("Content-Type", HTML_CONTENT_TYPE);
         exchange.sendResponseHeaders(statusCode, responseBody.length);
         try (OutputStream outputStream = exchange.getResponseBody()) {
             outputStream.write(responseBody);
@@ -55,24 +59,24 @@ public final class WebUtil {
     }
 
     public static void sendFile(
-        HttpExchange exchange, Path file, String contentType, String downloadName) throws IOException {
-    if (!Files.exists(file)) {
-        throw new ValidationException("The requested file does not exist.");
-    }
+            HttpExchange exchange, Path file, String contentType, String downloadName) throws IOException {
+        if (!Files.exists(file)) {
+            throw new ValidationException("The requested file does not exist.");
+        }
+        // 增加非普通文件校验
+        if (!Files.isRegularFile(file)) {
+            throw new ValidationException("The requested path is not a valid file.");
+        }
 
-    
-    String finalContentType = (contentType != null) ? contentType : "application/octet-stream";
-    String finalDownloadName = (downloadName != null) ? downloadName : file.getFileName().toString();
-
-   
-    var headers = exchange.getResponseHeaders();
-    headers.set("Content-Type", finalContentType);
-    headers.set("Content-Disposition", buildContentDisposition(finalDownloadName));
-
-    exchange.sendResponseHeaders(200, Files.size(file));
-    
-    try (OutputStream outputStream = exchange.getResponseBody()) {
-        Files.copy(file, outputStream);
+        exchange.getResponseHeaders().set(
+                "Content-Type", contentType == null ? DEFAULT_FILE_CONTENT_TYPE : contentType);
+        exchange.getResponseHeaders().set(
+                "Content-Disposition",
+                buildContentDisposition(downloadName == null ? file.getFileName().toString() : downloadName));
+        exchange.sendResponseHeaders(200, Files.size(file));
+        try (OutputStream outputStream = exchange.getResponseBody()) {
+            Files.copy(file, outputStream);
+        }
     }
 }
 
@@ -101,11 +105,9 @@ public final class WebUtil {
     }
 
     private static String buildContentDisposition(String downloadName) {
-        String safeName =
-                downloadName.replace("\r", "").replace("\n", "").replace("\"", "'");
-        return "attachment; filename=\""
-                + safeName
-                + "\"; filename*=UTF-8''"
-                + URLEncoder.encode(safeName, StandardCharsets.UTF_8);
+        String safeName = downloadName.replace("\r", "").replace("\n", "").replace("\"", "'");
+        // 使用String.format优化字符串拼接
+        return String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+                safeName, URLEncoder.encode(safeName, StandardCharsets.UTF_8));
     }
 }

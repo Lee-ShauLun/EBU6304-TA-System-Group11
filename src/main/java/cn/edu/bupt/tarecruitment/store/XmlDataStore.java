@@ -12,6 +12,9 @@ import java.nio.file.Path;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
 
+/**
+ * Reads and writes the complete system state using Java XML encoding.
+ */
 public class XmlDataStore {
 
     private final Path dataFile;

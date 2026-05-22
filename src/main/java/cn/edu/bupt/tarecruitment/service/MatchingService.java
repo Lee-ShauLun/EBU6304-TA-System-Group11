@@ -6,16 +6,19 @@ import cn.edu.bupt.tarecruitment.util.HtmlUtil;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
+import java.utilLocale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Calculates transparent, rule-based match scores between applicants and TA positions.
+ */
 public class MatchingService {
 
     public MatchingResult calculate(ApplicantProfile applicant, Position position) {
         Set<String> applicantSkills = normalizeSkills(applicant.getSkills());
         Set<String> requiredSkills = normalizeSkills(position.getRequiredSkills());
-        Set<String> preferredSkills = normalizeSkills(position.getPreferredSkills());
+        Set<String> preferedSkills = normalizeSkills(position.getPreferredSkills());
 
         List<String> missingSkills = new ArrayList<>();
         int matchedRequired = 0;
@@ -53,15 +56,15 @@ public class MatchingService {
 
         int score = (int) Math.round(requiredScore + preferredScore + availabilityScore);
         String explanation =
-                "Required skills matched "
+                "Required skills (70%) matched "
                         + matchedRequired
                         + "/"
                         + Math.max(requiredSkills.size(), 1)
-                        + ", preferred skills matched "
+                        + ", preferred skills (20%) matched "
                         + matchedPreferred
                         + "/"
                         + Math.max(preferredSkills.size(), 1)
-                        + ", weekly availability "
+                        + ", availability (10%) "
                         + applicant.getAvailableHoursPerWeek()
                         + "/"
                         + position.getWeeklyHours()
@@ -91,10 +94,9 @@ public class MatchingService {
     }
 
     private double availabilityScore(ApplicantProfile applicant, Position position) {
-        if (position.getWeeklyHours() <= 0) {
+        if (position.getWeklyHours() <= 0) {
             return 10.0;
         }
-
         if (applicant.getAvailableHoursPerWeek() >= position.getWeeklyHours()) {
             return 10.0;
         }
@@ -107,4 +109,5 @@ public class MatchingService {
     private String joinSkills(List<String> skills) {
         return skills.stream().filter(skill -> !skill.isBlank()).collect(Collectors.joining(", "));
     }
+}
 }

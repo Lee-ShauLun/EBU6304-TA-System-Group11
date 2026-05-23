@@ -13,11 +13,16 @@ public class AppServer {
     private final HttpServer httpServer;
 
     public AppServer(AppConfig appConfig, RecruitmentService recruitmentService) throws IOException {
-        this.appConfig = appConfig;
-        this.httpServer = HttpServer.create(new InetSocketAddress(appConfig.getPort()), 0);
-        this.httpServer.createContext("/", new RecruitmentHttpHandler(recruitmentService));
-        this.httpServer.setExecutor(Executors.newFixedThreadPool(8));
-    }
+    this.appConfig = appConfig;
+    
+    int port = appConfig.getPort();
+    int systemDefaultBacklog = 0; 
+    int threadPoolSize = 8;
+
+    this.httpServer = HttpServer.create(new InetSocketAddress(port), systemDefaultBacklog);
+    this.httpServer.createContext("/", new RecruitmentHttpHandler(recruitmentService));
+    this.httpServer.setExecutor(Executors.newFixedThreadPool(threadPoolSize));
+}
 
     public void start() {
         httpServer.start();

@@ -214,15 +214,15 @@ public class RecruitmentService {
         return applicants;
     }
 
-    public synchronized ApplicantProfile findApplicant(String applicantId) {
-        if (HtmlUtil.isBlank(applicantId)) {
-            return null;
-        }
-        return dataStore.read().getApplicants().stream()
-                .filter(applicant -> applicantId.equals(applicant.getId()))
-                .findFirst()
-                .orElse(null);
+  public synchronized ApplicantProfile findApplicant(String applicantId) {
+    if (applicantId == null || applicantId.isBlank()) {
+        return null;
     }
+    return dataStore.read().getApplicants().stream()
+            .filter(applicant -> applicantId.equals(applicant.getId()))
+            .findFirst()
+            .orElse(null);
+}
 
     public synchronized List<Position> listOpenPositions(String keyword) {
         return listPositions(keyword, false);

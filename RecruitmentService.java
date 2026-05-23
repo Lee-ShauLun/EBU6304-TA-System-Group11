@@ -550,13 +550,14 @@ public class RecruitmentService {
         return position.orElseThrow();
     }
 
-private ApplicationRecord findRequiredApplication(SystemData data, String applicationId) {
-    return data.getApplications().stream()
-            .filter(item -> applicationId.equals(item.getId()))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("The application record was not found."));
-}
-
+    private ApplicationRecord findRequiredApplication(SystemData data, String applicationId) {
+        Optional<ApplicationRecord> application =
+                data.getApplications().stream()
+                        .filter(item -> applicationId.equals(item.getId()))
+                        .findFirst();
+        require(application.isPresent(), "The application record was not found.");
+        return application.orElseThrow();
+    }
     private int countSelectedApplications(List<ApplicationRecord> applications, String positionId) {
         int selectedCount = 0;
         for (ApplicationRecord application : applications) {
